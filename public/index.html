@@ -397,6 +397,10 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:
     </div>
 
     <div class="nav-right">
+      <button class="btn btn-ghost btn-sm" id="users-btn" onclick="openUsersModal()" title="Manage Users" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+      </button>
       <button class="btn btn-ghost btn-sm" onclick="openChangePassword()" title="Change Password">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Change Password
@@ -834,6 +838,45 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:
   </div>
 </div>
 
+<!-- MODAL: USER MANAGEMENT -->
+<div class="overlay" id="modal-users">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>USER MANAGEMENT</div>
+      <button class="modal-close-btn" onclick="closeModal('modal-users')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <button class="btn btn-primary" onclick="openAddUser()" style="margin-bottom:20px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add New User
+      </button>
+      <div id="users-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD/EDIT USER -->
+<div class="overlay" id="modal-user-form">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="user-form-title">ADD USER</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-user-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Username <span>*</span></label><input id="uf-username" placeholder="Enter username"></div>
+        <div class="field"><label>Email <span>*</span></label><input id="uf-email" type="email" placeholder="user@example.com"></div>
+        <div class="field"><label>Password <span id="pw-label">*</span></label><input id="uf-password" type="password" placeholder="Enter password"></div>
+        <div class="field"><label>Role</label><select id="uf-role"><option value="user">User</option><option value="admin">Admin</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-user-form')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save User</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: CHANGE PASSWORD -->
 <div class="overlay" id="modal-password">
   <div class="modal modal-sm">
@@ -926,17 +969,188 @@ async function savePassword() {
 }
 
 // Check authentication on load
+let currentUser = '';
 (async function checkAuth() {
   try {
     const res = await fetch('/api/check-auth');
     const data = await res.json();
     if (!data.authenticated) {
       window.location.href = '/login.html';
+    } else {
+      currentUser = data.username;
+      // Show users button for admin
+      if (data.username === 'admin') {
+        document.getElementById('users-btn').style.display = 'inline-flex';
+      }
     }
   } catch (e) {
     window.location.href = '/login.html';
   }
 })();
+
+// ── USER MANAGEMENT ────────────────────────────────────────────────────────
+async function openUsersModal() {
+  await loadUsers();
+  openModal('modal-users');
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users');
+    const users = await res.json();
+    const list = document.getElementById('users-list');
+    
+    if (!users.length) {
+      list.innerHTML = '<div class="empty">No users found</div>';
+      return;
+    }
+    
+    list.innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--surface2);text-align:left">
+            <th style="padding:12px;border-bottom:1px solid var(--border)">Username</th>
+            <th style="padding:12px;border-bottom:1px solid var(--border)">Email</th>
+            <th style="padding:12px;border-bottom:1px solid var(--border)">Role</th>
+            <th style="padding:12px;border-bottom:1px solid var(--border)">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:12px"><strong>${h(u.username)}</strong>${u.username === currentUser ? ' <span style="font-size:10px;background:var(--accent);color:white;padding:2px 6px;border-radius:4px">You</span>' : ''}</td>
+              <td style="padding:12px;color:var(--text-dim)">${h(u.email || '—')}</td>
+              <td style="padding:12px"><span class="badge ${u.role === 'admin' ? 'b-active' : 'b-retired'}">${u.role}</span></td>
+              <td style="padding:12px">
+                <button class="btn btn-ghost btn-sm" onclick="editUser('${h(u.username)}')">Edit</button>
+                ${u.username !== 'admin' && u.username !== currentUser ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${h(u.username)}')">Delete</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    toast('Failed to load users', 't-error');
+  }
+}
+
+function openAddUser() {
+  document.getElementById('user-form-title').textContent = 'ADD USER';
+  document.getElementById('uf-username').value = '';
+  document.getElementById('uf-username').disabled = false;
+  document.getElementById('uf-email').value = '';
+  document.getElementById('uf-password').value = '';
+  document.getElementById('uf-password').placeholder = 'Enter password';
+  document.getElementById('pw-label').textContent = '*';
+  document.getElementById('uf-role').value = 'user';
+  openModal('modal-user-form');
+}
+
+async function editUser(username) {
+  document.getElementById('user-form-title').textContent = 'EDIT USER: ' + username;
+  document.getElementById('uf-username').value = username;
+  document.getElementById('uf-username').disabled = true;
+  document.getElementById('uf-email').value = '';
+  document.getElementById('uf-password').value = '';
+  document.getElementById('uf-password').placeholder = 'Leave empty to keep current';
+  document.getElementById('pw-label').textContent = '';
+  
+  // Get current user data
+  try {
+    const res = await fetch('/api/users');
+    const users = await res.json();
+    const user = users.find(u => u.username === username);
+    if (user) {
+      document.getElementById('uf-email').value = user.email || '';
+      document.getElementById('uf-role').value = user.role || 'user';
+    }
+  } catch (e) {}
+  
+  openModal('modal-user-form');
+}
+
+async function saveUser() {
+  const username = document.getElementById('uf-username').value.trim();
+  const email = document.getElementById('uf-email').value.trim();
+  const password = document.getElementById('uf-password').value;
+  const role = document.getElementById('uf-role').value;
+  
+  if (!username) {
+    toast('Username required', 't-error');
+    return;
+  }
+  if (!email) {
+    toast('Email required', 't-error');
+    return;
+  }
+  
+  const isEdit = document.getElementById('uf-username').disabled;
+  
+  if (!isEdit && !password) {
+    toast('Password required', 't-error');
+    return;
+  }
+  
+  try {
+    if (isEdit) {
+      const body = { username, email, role };
+      if (password) body.newPassword = password;
+      
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      if (res.ok) {
+        toast('User updated', 't-success');
+        closeModal('modal-user-form');
+        await loadUsers();
+      } else {
+        const data = await res.json();
+        toast(data.error || 'Failed to update user', 't-error');
+      }
+    } else {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, role })
+      });
+      
+      if (res.ok) {
+        toast('User created', 't-success');
+        closeModal('modal-user-form');
+        await loadUsers();
+      } else {
+        const data = await res.json();
+        toast(data.error || 'Failed to create user', 't-error');
+      }
+    }
+  } catch (e) {
+    toast('Connection error', 't-error');
+  }
+}
+
+async function deleteUser(username) {
+  confirm2(`Delete user "${username}"?`, 'This action cannot be undone.', async () => {
+    try {
+      const res = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        toast('User deleted', 't-success');
+        await loadUsers();
+      } else {
+        const data = await res.json();
+        toast(data.error || 'Failed to delete user', 't-error');
+      }
+    } catch (e) {
+      toast('Connection error', 't-error');
+    }
+  });
+}
 
 // ── SCHEMA ─────────────────────────────────────────────────────────────────
 const FIELDS=[

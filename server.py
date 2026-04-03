@@ -88,25 +88,7 @@ def create_default_location():
 init_main_db()
 create_default_location()
 
-@app.route('/')
-def index():
-    if 'username' not in session:
-        return redirect('/login.html')
-    if 'location_code' not in session:
-        return redirect('/select-location.html')
-    return send_from_directory('public', 'index.html')
-
-@app.route('/login.html')
-def login_page():
-    if 'username' in session:
-        if 'location_code' not in session:
-            return send_from_directory('public', 'select-location.html')
-        return redirect('/')
-    return send_from_directory('public', 'login.html')
-
-@app.route('/select-location.html')
-def select_location_page():
-    return send_from_directory('public', 'select-location.html')
+# API Routes (must come before catch-all route)
 
 @app.route('/api/locations', methods=['GET'])
 def get_locations():
@@ -291,6 +273,8 @@ def manage_locations():
             return jsonify({"error": "Location code already exists"}), 400
         
         c.execute("INSERT INTO locations (code, name, address) VALUES (?, ?, ?)", (code, name, address))
+        c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
+                 (code, 'admin', hash_password('admin123'), f'admin@{code.lower()}.com', 'admin'))
         conn.commit()
         conn.close()
         
@@ -300,8 +284,6 @@ def manage_locations():
         loc_c = loc_conn.cursor()
         loc_c.execute("INSERT INTO store (key, value) VALUES ('location_name', ?)",
                      (json.dumps(name),))
-        loc_c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
-                     (code, 'admin', hash_password('admin123'), f'admin@{code.lower()}.com', 'admin'))
         loc_conn.commit()
         loc_conn.close()
         
@@ -356,6 +338,26 @@ def save_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Page Routes
+
+@app.route('/')
+def index():
+    if 'username' not in session:
+        return redirect('/login.html')
+    if 'location_code' not in session:
+        return redirect('/select-location.html')
+    return send_from_directory('public', 'index.html')
+
+@app.route('/login.html')
+def login_page():
+    if 'username' in session:
+        return redirect('/')
+    return send_from_directory('public', 'login.html')
+
+@app.route('/select-location.html')
+def select_location_page():
+    return send_from_directory('public', 'select-location.html')
+
 @app.route('/<path:path>')
 def serve_static(path):
     if 'username' not in session:
@@ -370,9 +372,11 @@ if __name__ == '__main__':
     print(f"")
     print(f" -> Open browser at: http://localhost:{PORT}")
     print(f"")
-    print(f" DEFAULT CREDENTIALS PER LOCATION:")
+    print(f" LOGIN CREDENTIALS:")
     print(f" ----------------------------------------")
-    print(f" HQ (Headquarters)  | admin / admin123")
+    print(f" HQ  | admin / admin123")
+    print(f" CHN | admin / admin123")
+    print(f" HSR | admin / admin123")
     print(f" ----------------------------------------")
     print(f"==================================================")
     app.run(host='0.0.0.0', port=PORT)

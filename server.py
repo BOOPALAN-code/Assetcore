@@ -1,66 +1,54 @@
 import json
 import sqlite3
 import os
-import urllib.parse
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from flask import Flask, request, send_from_directory
 
-PORT = 8000
+app = Flask(__name__, static_folder='public')
+
+PORT = int(os.environ.get('PORT', 8000))
 DB_FILE = "database.sqlite"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # Simple JSON document store
     c.execute("CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)")
     conn.commit()
     conn.close()
 
-class AssetCoreServer(SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/api/load':
-            conn = sqlite3.connect(DB_FILE)
-            c = conn.cursor()
-            c.execute("SELECT key, value FROM store")
-            rows = c.fetchall()
-            conn.close()
-            
-            data = {k: json.loads(v) for k, v in rows}
-            
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(data).encode('utf-8'))
-        else:
-            # Default to index.html
-            if self.path == '/':
-                self.path = '/public/index.html'
-            super().do_GET()
+@app.route('/')
+def index():
+    return send_from_directory('public', 'index.html')
 
-    def do_POST(self):
-        if self.path == '/api/save':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
-            try:
-                data = json.loads(post_data.decode('utf-8'))
-                conn = sqlite3.connect(DB_FILE)
-                c = conn.cursor()
-                for key, value in data.items():
-                    c.execute("INSERT OR REPLACE INTO store (key, value) VALUES (?, ?)", 
-                             (key, json.dumps(value)))
-                conn.commit()
-                conn.close()
-                
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-        else:
-            self.send_error(404, "Not Found")
+@app.route('/<path:path>')
+def serve_static(path):
+    if path == 'api/load':
+        return load_data()
+    return send_from_directory('public', path)
+
+@app.route('/api/load')
+def load_data():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT key, value FROM store")
+    rows = c.fetchall()
+    conn.close()
+    data = {k: json.loads(v) for k, v in rows}
+    return app.response_class(json.dumps(data), mimetype='application/json')
+
+@app.route('/api/save', methods=['POST'])
+def save_data():
+    try:
+        data = request.get_json()
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        for key, value in data.items():
+            c.execute("INSERT OR REPLACE INTO store (key, value) VALUES (?, ?)", 
+                     (key, json.dumps(value)))
+        conn.commit()
+        conn.close()
+        return app.response_class(json.dumps({"status": "success"}), mimetype='application/json')
+    except Exception as e:
+        return app.response_class(json.dumps({"error": str(e)}), status=500, mimetype='application/json')
 
 if __name__ == '__main__':
     init_db()
@@ -70,4 +58,4 @@ if __name__ == '__main__':
     print(f"")
     print(f" -> Open your browser at: http://localhost:{PORT}")
     print(f"==================================================")
-    HTTPServer(('', PORT), AssetCoreServer).serve_forever()
+    app.run(host='0.0.0.0', port=PORT)

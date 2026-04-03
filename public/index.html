@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetCore — Asset Maintenance Management</title>
+<style>
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface2: #f1f5f9;
+  --surface3: #e2e8f0;
+  --border: #e2e8f0;
+  --border2: #cbd5e1;
+  --accent: #2563eb;
+  --accent-dim: rgba(37, 99, 235, 0.1);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-muted: #94a3b8;
+  --mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --radius: 12px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px;line-height:1.5}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+/* ── NAV TABS ── */
+#nav-tabs{position:sticky;top:0;z-index:300;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;padding:0 24px;gap:0;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:16px;font-weight:800;color:var(--text);letter-spacing:1px;white-space:nowrap;margin-right:28px}
+.logo-box{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,0.2)}
+.logo-box svg{width:18px;height:18px;color:#fff}
+.tabs{display:flex;gap:4px;flex:1}
+.tab-btn{display:flex;align-items:center;gap:8px;padding:0 20px;height:44px;margin-top:10px;background:none;border:none;border-radius:8px;color:var(--text-dim);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;transition:all 0.15s;white-space:nowrap}
+.tab-btn svg{width:16px;height:16px;flex-shrink:0}
+.tab-btn:hover{color:var(--text);background:var(--surface2)}
+.tab-btn.active{color:var(--accent);background:var(--accent-dim)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s ease;white-space:nowrap;text-decoration:none}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,0.2)}
+.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 6px 16px rgba(37,99,235,0.3)}
+.btn-ghost{background:var(--surface);color:var(--text-dim);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-success{background:rgba(16,185,129,0.1);color:var(--success);border:1px solid rgba(16,185,129,0.2)}
+.btn-success:hover{background:rgba(16,185,129,0.15)}
+.btn-warn{background:rgba(245,158,11,0.1);color:var(--warning);border:1px solid rgba(245,158,11,0.2)}
+.btn-warn:hover{background:rgba(245,158,11,0.15)}
+.btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}
+.btn-danger:hover{background:rgba(239,68,68,0.15)}
+.btn-info{background:rgba(59,130,246,0.1);color:var(--info);border:1px solid rgba(59,130,246,0.2)}
+.btn-info:hover{background:rgba(59,130,246,0.15)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+
+/* ── PAGES ── */
+.page{display:none;position:relative;z-index:1;min-height:calc(100vh - 64px);animation:fadeIn 0.2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.7);backdrop-filter:blur(12px);flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:240px;max-width:400px}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.search-icon svg{width:16px;height:16px}
+.search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px 10px 38px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color 0.15s,box-shadow 0.15s;box-shadow:var(--shadow)}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.search-input::placeholder{color:var(--text-muted)}
+.filter-select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text-dim);font-family:var(--sans);font-size:13px;font-weight:500;outline:none;cursor:pointer;transition:all 0.15s;box-shadow:var(--shadow)}
+.filter-select:focus,.filter-select:hover{border-color:var(--border2);color:var(--text)}
+.toolbar-right{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.selected-bar{display:none;align-items:center;gap:12px;padding:8px 16px;background:var(--accent-dim);border:1px solid rgba(37,99,235,0.2);border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--accent)}
+.selected-bar.show{display:flex}
+
+/* ── HEADER STATS ── */
+.header-stats{display:flex;gap:20px;align-items:center;font-family:var(--sans);font-size:13px;font-weight:500;background:var(--surface2);padding:6px 14px;border-radius:20px;border:1px solid var(--border)}
+.hs{display:flex;align-items:center;gap:6px;color:var(--text-dim)}
+.hs-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hs-dot.green{background:var(--success)}
+.hs-dot.orange{background:var(--warning)}
+.hs-dot.red{background:var(--danger)}
+.hs-dot.blue{background:var(--info)}
+.hs-dot.grey{background:var(--text-muted)}
+.hs-val{color:var(--text);font-weight:700;min-width:20px;text-align:center}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;padding:24px;flex:1}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;white-space:nowrap;background:var(--surface);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
+thead th{background:var(--surface2);padding:14px 16px;text-align:left;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);position:sticky;top:64px;cursor:pointer;user-select:none;transition:color 0.12s;z-index:2}
+thead th:first-child{border-top-left-radius:12px}
+thead th:last-child{border-top-right-radius:12px}
+thead th:hover{color:var(--text)}
+thead th.sort-asc .sort-arr::after{content:' ↑';color:var(--accent)}
+thead th.sort-desc .sort-arr::after{content:' ↓';color:var(--accent)}
+thead th .sort-arr::after{content:' ↕';opacity:0.3}
+tbody tr{animation:rowFade 0.2s ease both;transition:background 0.1s}
+@keyframes rowFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+tbody tr:hover{background:var(--surface2)}
+tbody tr.row-selected{background:var(--accent-dim)}
+tbody tr:last-child td:first-child{border-bottom-left-radius:12px}
+tbody tr:last-child td:last-child{border-bottom-right-radius:12px}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:13px;color:var(--text-dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody td.td-id{color:var(--text);font-family:var(--mono);font-weight:600;font-size:13px}
+tbody td.td-name{color:var(--text);font-weight:600;font-size:13px}
+tbody td.td-actions{max-width:none}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:0.5px;font-family:var(--sans);white-space:nowrap}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%}
+.b-active{background:rgba(16,185,129,0.1);color:var(--success)}
+.b-active::before{background:var(--success)}
+.b-inactive{background:rgba(239,68,68,0.1);color:var(--danger)}
+.b-inactive::before{background:var(--danger)}
+.b-maintenance{background:rgba(245,158,11,0.1);color:var(--warning)}
+.b-maintenance::before{background:var(--warning)}
+.b-retired{background:var(--surface3);color:var(--text-dim)}
+.b-retired::before{background:var(--text-muted)}
+.b-open{background:rgba(239,68,68,0.1);color:var(--danger)}
+.b-open::before{background:var(--danger)}
+.b-progress{background:rgba(245,158,11,0.1);color:var(--warning)}
+.b-progress::before{background:var(--warning)}
+.b-closed{background:rgba(16,185,129,0.1);color:var(--success)}
+.b-closed::before{background:var(--success)}
+.b-pending{background:rgba(59,130,246,0.1);color:var(--info)}
+.b-pending::before{background:var(--info)}
+.chip{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;font-family:var(--sans);background:var(--surface3);color:var(--text);border:1px solid var(--border)}
+
+/* action buttons */
+.act-btns{display:flex;gap:6px}
+.act-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:500;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.act-btn svg{width:14px;height:14px}
+.act-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2)}
+.act-btn.del:hover{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,0.05)}
+.act-btn.prn:hover{border-color:var(--success);color:var(--success);background:rgba(16,185,129,0.05)}
+
+/* checkbox */
+.chk-cell{width:48px;text-align:center}
+input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;border-radius:4px;border:1px solid var(--border)}
+
+/* empty */
+.empty{text-align:center;padding:100px 24px;font-family:var(--sans);color:var(--text-muted);background:var(--surface);border-radius:12px;border:1px dashed var(--border2);margin:0 auto;max-width:600px}
+.empty-icon{font-size:48px;margin-bottom:16px;filter:grayscale(1) opacity(0.5)}
+.empty-title{font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:8px;color:var(--text)}
+.empty-sub{font-size:13px;color:var(--text-dim)}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--border);font-family:var(--sans);font-size:13px;color:var(--text-dim);background:var(--surface);flex-wrap:wrap;gap:12px;margin:0 24px 24px;border-radius:12px;box-shadow:var(--shadow)}
+.pg-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pg-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text-dim);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:500;transition:all 0.15s}
+.pg-btn:hover:not(:disabled){border-color:var(--border2);color:var(--text);background:var(--surface2)}
+.pg-btn.pg-active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.pg-btn:disabled{opacity:0.4;cursor:not-allowed}
+.pg-ellipsis{color:var(--text-muted);padding:0 8px}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:960px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)}
+.modal-sm{max-width:560px}
+.modal-md{max-width:760px}
+@keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10;border-radius:16px 16px 0 0}
+.modal-title{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px}
+.modal-title svg{width:18px;height:18px;color:var(--accent)}
+.modal-close-btn{background:var(--surface2);border:none;color:var(--text-dim);cursor:pointer;padding:8px;border-radius:8px;transition:all 0.15s;display:flex}
+.modal-close-btn:hover{color:var(--danger);background:rgba(239,68,68,0.1)}
+.modal-close-btn svg{width:16px;height:16px}
+.modal-body{padding:28px}
+.modal-foot{display:flex;justify-content:flex-end;gap:12px;padding:20px 28px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--surface);z-index:10;border-radius:0 0 16px 16px}
+
+/* form */
+.sec-label{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin:32px 0 16px;display:flex;align-items:center;gap:12px}
+.sec-label:first-child{margin-top:0}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+.form-grid-2{grid-template-columns:repeat(2,1fr)}
+.form-grid-3{grid-template-columns:repeat(3,1fr)}
+.form-grid-4{grid-template-columns:repeat(4,1fr)}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-dim)}
+.field label span{color:var(--danger);margin-left:4px}
+.field input,.field select,.field textarea{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:all 0.15s;width:100%;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.field input::placeholder,.field textarea::placeholder{color:var(--text-muted)}
+.field textarea{resize:vertical;min-height:80px}
+
+/* detail view */
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.det-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:all 0.15s;box-shadow:var(--shadow)}
+.det-item:hover{border-color:var(--border2);transform:translateY(-1px)}
+.det-k{font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.5px}
+.det-v{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text);word-break:break-all}
+.det-v.empty{color:var(--text-muted);font-style:italic;font-size:13px}
+
+/* ── IMPORT ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;background:var(--surface2);padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;font-family:var(--sans)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
+.drop-icon{font-size:48px;margin-bottom:16px;opacity:0.6}
+.drop-text{font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px}
+.drop-sub{font-size:12px;color:var(--text-dim);line-height:1.6}
+.import-preview{margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text-dim);display:none;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.import-preview.show{display:flex}
+.import-preview-text{flex:1}
+
+/* ── TOAST ── */
+#toast-root{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:12px;pointer-events:none}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:12px;animation:toastIn 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:var(--shadow-lg);min-width:280px;max-width:400px;pointer-events:all}
+.toast.t-success{border-left:4px solid var(--success)}
+.toast.t-error{border-left:4px solid var(--danger)}
+.toast.t-info{border-left:4px solid var(--accent)}
+.toast.t-warn{border-left:4px solid var(--warning)}
+.toast-icon{font-size:16px;flex-shrink:0}
+@keyframes toastIn{from{transform:translateX(32px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(32px)}}
+
+/* ── CONFIRM ── */
+#confirm-box{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.6);backdrop-filter:blur(8px)}
+#confirm-box.open{display:flex}
+.confirm-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow-lg);animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1)}
+.confirm-icon{font-size:42px;margin-bottom:16px}
+.confirm-msg{font-family:var(--sans);font-size:18px;color:var(--text);margin-bottom:8px;font-weight:700}
+.confirm-sub{font-family:var(--sans);font-size:13px;color:var(--text-dim);margin-bottom:28px}
+.confirm-btns{display:flex;gap:12px;justify-content:center}
+
+/* ── TEMPLATE PAGES ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;padding:32px 32px 0;flex-wrap:wrap;gap:16px}
+.page-title{font-family:var(--sans);font-size:24px;font-weight:800;color:var(--text);letter-spacing:-0.5px}
+.page-sub{font-family:var(--sans);font-size:14px;color:var(--text-dim);margin-top:6px}
+
+/* ── MAINTENANCE LOG CARDS ── */
+.mlog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;padding:24px 32px}
+.mlog-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;transition:all 0.15s;box-shadow:var(--shadow)}
+.mlog-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.mlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.mlog-id{font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:600}
+.mlog-title{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--text)}
+.mlog-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px}
+.mlog-kv{font-family:var(--sans);font-size:12px}
+.mlog-k{color:var(--text-dim);display:block;margin-bottom:4px;font-weight:500}
+.mlog-v{color:var(--text);font-weight:600}
+.mlog-desc{font-family:var(--sans);font-size:13px;color:var(--text-dim);background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.6;border:1px solid var(--border)}
+.mlog-foot{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:16px}
+
+/* ── HANDOVER CARDS ── */
+.handover-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px;transition:all 0.15s;box-shadow:var(--shadow)}
+.handover-card:hover{border-color:var(--border2);box-shadow:var(--shadow-lg)}
+.handover-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.handover-title{font-family:var(--sans);font-size:16px;font-weight:800;color:var(--text)}
+.handover-ref{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+.handover-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px}
+.handover-side-label{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.hkv{margin-bottom:10px;font-family:var(--sans);font-size:13px}
+.hkv-k{color:var(--text-dim);font-size:11px;display:block;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.hkv-v{color:var(--text);font-weight:600}
+.handover-items{margin-bottom:20px}
+.handover-item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:13px;color:var(--text-dim);background:var(--surface);border-radius:6px}
+.handover-item-row:last-child{border-bottom:none}
+.hi-check{color:var(--success);font-size:14px;font-weight:700}
+.handover-foot{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:16px}
+
+/* ── AUDIT CHECKLIST ── */
+.audit-container{padding:24px 32px}
+.audit-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.audit-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+.audit-asset-info{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--sans);font-size:13px}
+.audit-info-kv{display:flex;flex-direction:column;gap:6px}
+.audit-info-k{font-size:11px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.audit-info-v{color:var(--text);font-weight:700}
+.audit-sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:20px}
+.audit-sec{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.audit-sec-title{font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.audit-check-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:13px;color:var(--text-dim)}
+.audit-check-row:last-child{border-bottom:none}
+.audit-check-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);border-radius:4px;cursor:pointer}
+.audit-check-label{flex:1;font-weight:500}
+.audit-check-val{font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;padding:4px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);transition:all 0.15s}
+.audit-check-val:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.audit-progress{margin-bottom:24px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text-dim)}
+.progress-bar-bg{height:8px;background:var(--surface3);border-radius:4px;margin-top:8px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--success));transition:width 0.4s ease}
+.audit-foot{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:16px}
+
+/* ── LABEL GRID ── */
+.label-grid{display:flex;flex-wrap:wrap;gap:20px;padding:24px 32px}
+.label-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:300px;box-shadow:var(--shadow)}
+.label-preview{background:#fff;border-radius:8px;padding:16px;color:#000;font-family:var(--mono);margin-bottom:16px;border:2px solid #e0e0e0}
+.lp-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
+.lp-logo{font-size:13px;font-weight:900;letter-spacing:2px;color:#000}
+.lp-type{font-size:10px;font-weight:700;background:#000;color:#fff;padding:4px 8px;border-radius:4px;letter-spacing:1px}
+.lp-main{margin-bottom:12px}
+.lp-asset-id{font-size:20px;font-weight:900;color:#000;letter-spacing:1px;margin-bottom:4px}
+.lp-name{font-size:12px;font-weight:600;color:#333;margin-bottom:10px}
+.lp-row{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:4px}
+.lp-qr{width:64px;height:64px;background:repeating-linear-gradient(45deg,#000 0,#000 2px,#fff 2px,#fff 6px);border:2px solid #000;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.lp-qr-inner{width:36px;height:36px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;text-align:center;line-height:1.2;color:#000}
+.lp-bottom{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #ddd;padding-top:10px;margin-top:10px}
+.lp-barcode{flex:1;margin-right:12px}
+.lp-bar{display:flex;gap:1px;height:32px;align-items:flex-end}
+.lp-bar-item{background:#000;border-radius:0}
+.lp-barcode-num{font-size:9px;font-weight:600;color:#555;margin-top:4px;letter-spacing:2px}
+.label-card-actions{display:flex;gap:8px}
+
+/* ── PRINT STYLES ── */
+@media print {
+  #nav-tabs,.toolbar,.pagination,.modal,.overlay,#toast-root,#confirm-box,.act-btns,.label-card-actions,.mlog-foot,.handover-foot,.audit-foot,.page-header .btn,.toolbar-right { display:none!important }
+  body { background:#fff!important;color:#000!important }
+  .print-area { display:block!important }
+  * { color-adjust:exact;-webkit-print-color-adjust:exact;print-color-adjust:exact }
+}
+
+/* ── PRINT PREVIEW MODAL ── */
+.print-preview{background:var(--surface2);padding:32px;min-height:400px;border-top:1px solid var(--border)}
+.print-doc{background:#fff;max-width:794px;margin:0 auto;padding:40px 50px;box-shadow:0 4px 20px rgba(0,0,0,0.2);color:#000;font-family:Arial,sans-serif;font-size:12px}
+.print-doc-header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #000;padding-bottom:16px;margin-bottom:20px}
+.print-company{font-size:20px;font-weight:900;letter-spacing:2px;color:#000}
+.print-doc-title{font-size:14px;font-weight:700;color:#333;margin-top:4px}
+.print-doc-meta{text-align:right;font-size:11px;color:#555}
+.print-doc-meta div{margin-bottom:3px}
+.print-section-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#333;border-bottom:1px solid #ccc;padding-bottom:6px;margin:16px 0 10px}
+.print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;margin-bottom:12px}
+.print-field{border-bottom:1px solid #ddd;padding:4px 0}
+.print-field-k{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:3px}
+.print-field-v{font-size:12px;color:#000;font-weight:500}
+.print-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}
+.print-table th{background:#f0f0f0;padding:8px 10px;text-align:left;border:1px solid #ddd;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.print-table td{padding:8px 10px;border:1px solid #ddd;vertical-align:top}
+.print-sig-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px}
+.print-sig-box{border-top:1px solid #000;padding-top:8px}
+.print-sig-label{font-size:10px;color:#555;letter-spacing:1px;text-transform:uppercase}
+.print-status-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.5px}
+.ps-active{background:#d4edda;color:#155724}
+.ps-inactive{background:#f8d7da;color:#721c24}
+.ps-maintenance{background:#fff3cd;color:#856404}
+.ps-retired{background:#e2e3e5;color:#495057}
+.ps-open{background:#f8d7da;color:#721c24}
+.ps-progress{background:#fff3cd;color:#856404}
+.ps-closed{background:#d4edda;color:#155724}
+.ps-pending{background:#cce5ff;color:#004085}
+.print-checklist-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:11px}
+.print-checkbox{width:14px;height:14px;border:1px solid #999;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.print-checkbox.checked{background:#155724;border-color:#155724;color:#fff}
+.label-print-sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0}
+.label-print-item{border:1px solid #ccc;border-radius:4px;padding:10px;font-family:monospace;font-size:10px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){.header-stats{display:none}.form-grid,.form-grid-3{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr 1fr}.handover-cols{grid-template-columns:1fr}.audit-sections{grid-template-columns:1fr}}
+@media(max-width:480px){.form-grid,.form-grid-2,.form-grid-3,.form-grid-4{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}#nav-tabs .logo{display:none}.tab-btn{padding:0 10px;font-size:10px}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV TABS ═══════════ -->
+<div id="nav-tabs">
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      AssetCore
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('assets')" id="tab-assets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Assets
+      </button>
+      <button class="tab-btn" onclick="switchTab('maintenance')" id="tab-maintenance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Maintenance Log
+      </button>
+      <button class="tab-btn" onclick="switchTab('handover')" id="tab-handover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Handover / Transfer
+      </button>
+      <button class="tab-btn" onclick="switchTab('audit')" id="tab-audit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Audit Checklist
+      </button>
+      <button class="tab-btn" onclick="switchTab('labels')" id="tab-labels">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Asset Labels
+      </button>
+    </div>
+
+    <div class="nav-right">
+      <div class="header-stats">
+        <div class="hs"><span class="hs-dot green"></span>Active <span class="hs-val" id="hs-active">0</span></div>
+        <div class="hs"><span class="hs-dot orange"></span>Maint <span class="hs-val" id="hs-maint">0</span></div>
+        <div class="hs"><span class="hs-dot red"></span>Inactive <span class="hs-val" id="hs-inactive">0</span></div>
+        <div class="hs"><span class="hs-dot grey"></span>Total <span class="hs-val" id="hs-total">0</span></div>
+      </div>
+      <button class="btn btn-ghost" onclick="openImport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import
+      </button>
+      <button class="btn btn-ghost" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="btn btn-primary" onclick="openAdd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Asset
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: ASSETS ═══════════ -->
+<div class="page active" id="page-assets">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <input class="search-input" id="q-search" placeholder="Search ID, name, serial, IP, model…" oninput="onFilter()">
+    </div>
+    <select class="filter-select" id="q-status" onchange="onFilter()">
+      <option value="">All Status</option>
+      <option>Active</option><option>Inactive</option><option>Maintenance</option><option>Retired</option>
+    </select>
+    <select class="filter-select" id="q-type" onchange="onFilter()">
+      <option value="">All Types</option>
+      <option>Desktop</option><option>Laptop</option><option>Server</option>
+      <option>Workstation</option><option>Tablet</option><option>Peripheral</option><option>Other</option>
+    </select>
+    <select class="filter-select" id="q-os" onchange="onFilter()">
+      <option value="">All OS</option>
+      <option>Windows 10</option><option>Windows 11</option><option>Ubuntu</option>
+      <option>macOS</option><option>CentOS</option><option>RHEL</option><option>Other</option>
+    </select>
+    <div class="selected-bar" id="sel-bar">
+      <span id="sel-count">0 selected</span>
+      <button class="btn btn-danger btn-sm" onclick="bulkDelete()">Delete Selected</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+    </div>
+    <div class="toolbar-right">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)" id="result-count"></span>
+      <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead><tr>
+        <th class="chk-cell"><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th>
+        <th data-col="assetId">Asset ID<span class="sort-arr"></span></th>
+        <th data-col="empName">Emp Name<span class="sort-arr"></span></th>
+        <th data-col="empId">Emp ID<span class="sort-arr"></span></th>
+        <th data-col="email">Email<span class="sort-arr"></span></th>
+        <th data-col="workstation">Workstation/Team<span class="sort-arr"></span></th>
+        <th data-col="status">Status<span class="sort-arr"></span></th>
+        <th data-col="owner">Owner<span class="sort-arr"></span></th>
+        <th data-col="custodian">Custodian<span class="sort-arr"></span></th>
+        <th data-col="branch">Branch<span class="sort-arr"></span></th>
+        <th data-col="type">Type<span class="sort-arr"></span></th>
+        <th data-col="os">OS<span class="sort-arr"></span></th>
+        <th data-col="antivirus">Antivirus<span class="sort-arr"></span></th>
+        <th data-col="patches">Patches<span class="sort-arr"></span></th>
+        <th data-col="manufacturer">Manufacturer<span class="sort-arr"></span></th>
+        <th data-col="serialNo">Serial No<span class="sort-arr"></span></th>
+        <th data-col="model">Model<span class="sort-arr"></span></th>
+        <th data-col="motherboard">MotherBoard<span class="sort-arr"></span></th>
+        <th data-col="processor">Processor<span class="sort-arr"></span></th>
+        <th data-col="memory">Memory<span class="sort-arr"></span></th>
+        <th data-col="ssd">SSD<span class="sort-arr"></span></th>
+        <th data-col="hdd">HDD<span class="sort-arr"></span></th>
+        <th data-col="ip">IP Address<span class="sort-arr"></span></th>
+        <th data-col="wlan">WLAN MAC<span class="sort-arr"></span></th>
+        <th data-col="port">Port No<span class="sort-arr"></span></th>
+        <th data-col="gpu">GPU<span class="sort-arr"></span></th>
+        <th data-col="headset">Headset S/N<span class="sort-arr"></span></th>
+        <th data-col="mouse">Mouse S/N<span class="sort-arr"></span></th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div class="empty" id="empty-state" style="display:none">
+      <div class="empty-icon">◫</div>
+      <div class="empty-title">NO ASSETS FOUND</div>
+      <div class="empty-sub">Add a new asset or adjust filters</div>
+    </div>
+  </div>
+  <div class="pagination">
+    <span id="page-info" style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"></span>
+    <div class="pg-btns" id="pg-btns"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: MAINTENANCE LOG ═══════════ -->
+<div class="page" id="page-maintenance">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Maintenance Log</div>
+      <div class="page-sub">Track service records, repairs and scheduled maintenance</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="filter-select" id="mlog-filter-asset" onchange="renderMlog()"><option value="">All Assets</option></select>
+      <select class="filter-select" id="mlog-filter-status" onchange="renderMlog()">
+        <option value="">All Status</option><option>Open</option><option>In Progress</option><option>Closed</option>
+      </select>
+      <button class="btn btn-primary" onclick="openMlogForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Log Entry
+      </button>
+    </div>
+  </div>
+  <div class="mlog-grid" id="mlog-grid">
+    <div class="empty" style="grid-column:1/-1">
+      <div class="empty-icon">🔧</div>
+      <div class="empty-title">NO MAINTENANCE LOGS</div>
+      <div class="empty-sub">Click "New Log Entry" to add a maintenance record</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: HANDOVER ═══════════ -->
+<div class="page" id="page-handover">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Asset Handover / Transfer</div>
+      <div class="page-sub">Document asset assignments, transfers and returns</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="filter-select" id="ho-filter-status" onchange="renderHandover()">
+        <option value="">All Status</option><option>Pending</option><option>Completed</option><option>Cancelled</option>
+      </select>
+      <button class="btn btn-primary" onclick="openHandoverForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Handover
+      </button>
+    </div>
+  </div>
+  <div style="padding:16px 24px" id="handover-list">
+    <div class="empty">
+      <div class="empty-icon">🤝</div>
+      <div class="empty-title">NO HANDOVER RECORDS</div>
+      <div class="empty-sub">Click "New Handover" to create a transfer document</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: AUDIT ═══════════ -->
+<div class="page" id="page-audit">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Asset Audit Checklist</div>
+      <div class="page-sub">Verify asset conditions, configurations and compliance</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="filter-select" id="audit-filter-asset" onchange="renderAudit()"><option value="">All Assets</option></select>
+      <button class="btn btn-primary" onclick="openAuditForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Audit
+      </button>
+    </div>
+  </div>
+  <div class="audit-container" id="audit-list">
+    <div class="empty">
+      <div class="empty-icon">✅</div>
+      <div class="empty-title">NO AUDIT RECORDS</div>
+      <div class="empty-sub">Click "New Audit" to start an asset verification</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: LABELS ═══════════ -->
+<div class="page" id="page-labels">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Asset Labels & Tags</div>
+      <div class="page-sub">Generate printable labels for physical asset tagging</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="filter-select" id="label-filter-status" onchange="renderLabels()">
+        <option value="">All Status</option><option>Active</option><option>Inactive</option><option>Maintenance</option><option>Retired</option>
+      </select>
+      <button class="btn btn-success" onclick="printAllLabels()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print All Labels
+      </button>
+    </div>
+  </div>
+  <div class="label-grid" id="label-grid">
+    <div class="empty" style="width:100%">
+      <div class="empty-icon">🏷️</div>
+      <div class="empty-title">NO ASSETS TO LABEL</div>
+      <div class="empty-sub">Add assets in the Assets tab to generate labels</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODALS: ASSET FORM ═══ -->
+<div class="overlay" id="modal-form">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span id="form-title">NEW ASSET</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="sec-label">Employee Information</div>
+      <div class="form-grid">
+        <div class="field"><label>Asset ID <span>*</span></label><input id="f-assetId" placeholder="AST-001"></div>
+        <div class="field"><label>Emp Name</label><input id="f-empName" placeholder="Full Name"></div>
+        <div class="field"><label>Emp ID</label><input id="f-empId" placeholder="EMP-001"></div>
+        <div class="field"><label>Email ID</label><input id="f-email" type="email" placeholder="user@company.com"></div>
+        <div class="field"><label>Workstation / Team</label><input id="f-workstation" placeholder="Team or desk number"></div>
+      </div>
+      <div class="sec-label">Ownership & Status</div>
+      <div class="form-grid">
+        <div class="field"><label>Status</label><select id="f-status"><option>Active</option><option>Inactive</option><option>Maintenance</option><option>Retired</option></select></div>
+        <div class="field"><label>Owner</label><input id="f-owner" placeholder="Owner name"></div>
+        <div class="field"><label>Custodian</label><input id="f-custodian" placeholder="Custodian name"></div>
+        <div class="field"><label>Branch</label><select id="f-branch"><option value="">Select Branch…</option><option>GenxLead Retail Private Limited</option><option>GenxLead Solution Private Limited</option></select></div>
+        <div class="field"><label>Type</label><select id="f-type"><option>Desktop</option><option>Laptop</option><option>Server</option><option>Workstation</option><option>Tablet</option><option>Peripheral</option><option>Other</option></select></div>
+      </div>
+      <div class="sec-label">Software & Security</div>
+      <div class="form-grid">
+        <div class="field"><label>OS</label><select id="f-os"><option>Windows 10</option><option>Windows 11</option><option>Ubuntu</option><option>macOS</option><option>CentOS</option><option>RHEL</option><option>Other</option></select></div>
+        <div class="field"><label>Antivirus Name</label><input id="f-antivirus" placeholder="e.g. Norton, Defender"></div>
+        <div class="field"><label>Patches & Version</label><input id="f-patches" placeholder="e.g. 22H2 KB5030219"></div>
+      </div>
+      <div class="sec-label">Hardware Specifications</div>
+      <div class="form-grid">
+        <div class="field"><label>Manufacturer</label><select id="f-manufacturer"><option value="">Select…</option><option>Dell</option><option>HP</option><option>Lenovo</option><option>Apple</option><option>Asus</option><option>Acer</option><option>Microsoft</option><option>Other</option></select></div>
+        <div class="field"><label>Serial No</label><input id="f-serialNo" placeholder="SN-XXXXXXXXX"></div>
+        <div class="field"><label>Model</label><input id="f-model" placeholder="e.g. OptiPlex 7090"></div>
+        <div class="field"><label>MotherBoard</label><input id="f-motherboard" placeholder="Board model"></div>
+        <div class="field"><label>Processor</label><input id="f-processor" placeholder="e.g. i7-12700"></div>
+        <div class="field"><label>Memory (RAM)</label><input id="f-memory" placeholder="e.g. 16GB DDR4"></div>
+        <div class="field"><label>SSD</label><input id="f-ssd" placeholder="e.g. 512GB NVMe"></div>
+        <div class="field"><label>HDD</label><input id="f-hdd" placeholder="e.g. 1TB SATA"></div>
+        <div class="field"><label>GPU</label><input id="f-gpu" placeholder="e.g. RTX 3060"></div>
+      </div>
+      <div class="sec-label">Network Details</div>
+      <div class="form-grid">
+        <div class="field"><label>IP Address</label><input id="f-ip" placeholder="192.168.x.x"></div>
+        <div class="field"><label>WLAN MAC</label><input id="f-wlan" placeholder="XX:XX:XX:XX:XX:XX"></div>
+        <div class="field"><label>Port No</label><input id="f-port" placeholder="Switch port number"></div>
+      </div>
+      <div class="sec-label">Peripherals</div>
+      <div class="form-grid">
+        <div class="field"><label>Headset Serial No</label><input id="f-headset" placeholder="HS-XXXXXXXX"></div>
+        <div class="field"><label>Mouse Serial No</label><input id="f-mouse" placeholder="MS-XXXXXXXX"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-form')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAsset()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DETAIL ═══ -->
+<div class="overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span id="detail-title">ASSET DETAIL</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-detail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Close</button>
+      <button class="btn btn-success" id="detail-print-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print Sheet</button>
+      <button class="btn btn-primary" id="detail-edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MAINTENANCE LOG FORM ═══ -->
+<div class="overlay" id="modal-mlog">
+  <div class="modal modal-md">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span id="mlog-form-title">NEW MAINTENANCE LOG</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-mlog')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Asset ID <span>*</span></label><select id="mf-assetId"><option value="">Select Asset…</option></select></div>
+        <div class="field"><label>Log Date <span>*</span></label><input id="mf-date" type="date"></div>
+        <div class="field"><label>Scheduled Date</label><input id="mf-scheduled" type="date"></div>
+        <div class="field"><label>Status</label>
+          <select id="mf-status"><option>Open</option><option>In Progress</option><option>Closed</option></select>
+        </div>
+        <div class="field"><label>Type</label>
+          <select id="mf-type"><option>Preventive</option><option>Corrective</option><option>Emergency</option><option>Upgrade</option><option>Inspection</option></select>
+        </div>
+        <div class="field"><label>Priority</label>
+          <select id="mf-priority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+        </div>
+        <div class="field"><label>Technician</label><input id="mf-tech" placeholder="Technician name"></div>
+        <div class="field"><label>Cost (₹)</label><input id="mf-cost" type="number" placeholder="0.00"></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Issue / Work Description <span>*</span></label><textarea id="mf-desc" placeholder="Describe the issue or maintenance work performed…" style="min-height:80px"></textarea></div>
+      <div class="field" style="margin-top:14px"><label>Resolution / Notes</label><textarea id="mf-notes" placeholder="Resolution details, parts replaced, observations…" style="min-height:64px"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-mlog')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMlog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: HANDOVER FORM ═══ -->
+<div class="overlay" id="modal-handover">
+  <div class="modal modal-md">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span id="ho-form-title">NEW HANDOVER / TRANSFER</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-handover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Asset ID <span>*</span></label><select id="ho-assetId"><option value="">Select Asset…</option></select></div>
+        <div class="field"><label>Handover Type</label><select id="ho-type"><option>Assignment</option><option>Transfer</option><option>Return</option><option>Replacement</option></select></div>
+        <div class="field"><label>Handover Date <span>*</span></label><input id="ho-date" type="date"></div>
+        <div class="field"><label>Status</label><select id="ho-status"><option>Pending</option><option>Completed</option><option>Cancelled</option></select></div>
+      </div>
+      <div class="sec-label">From (Current Holder)</div>
+      <div class="form-grid">
+        <div class="field"><label>From Emp Name</label><input id="ho-from-name" placeholder="Current holder name"></div>
+        <div class="field"><label>From Emp ID</label><input id="ho-from-id" placeholder="EMP-001"></div>
+        <div class="field"><label>From Department</label><input id="ho-from-dept" placeholder="Department / Team"></div>
+        <div class="field"><label>From Location</label><input id="ho-from-loc" placeholder="Location / Desk"></div>
+      </div>
+      <div class="sec-label">To (New Holder)</div>
+      <div class="form-grid">
+        <div class="field"><label>To Emp Name</label><input id="ho-to-name" placeholder="New holder name"></div>
+        <div class="field"><label>To Emp ID</label><input id="ho-to-id" placeholder="EMP-002"></div>
+        <div class="field"><label>To Department</label><input id="ho-to-dept" placeholder="Department / Team"></div>
+        <div class="field"><label>To Location</label><input id="ho-to-loc" placeholder="Location / Desk"></div>
+      </div>
+      <div class="sec-label">Items Included</div>
+      <div class="form-grid form-grid-2" style="margin-bottom:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">Check all items included:</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px">
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-laptop"> Laptop/Desktop</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-charger"> Charger/Adapter</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-mouse"> Mouse</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-keyboard"> Keyboard</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-headset"> Headset</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-bag"> Laptop Bag</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-docking"> Docking Station</label>
+            <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="ho-item-monitor"> Monitor</label>
+          </div>
+        </div>
+        <div class="field"><label>Asset Condition</label><select id="ho-condition"><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
+      </div>
+      <div class="field"><label>Remarks / Notes</label><textarea id="ho-remarks" placeholder="Any notes, conditions, special instructions…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-handover')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHandover()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save Handover</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: AUDIT FORM ═══ -->
+<div class="overlay" id="modal-audit">
+  <div class="modal modal-md">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span id="audit-form-title">NEW AUDIT CHECKLIST</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-audit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Asset ID <span>*</span></label><select id="af-assetId"><option value="">Select Asset…</option></select></div>
+        <div class="field"><label>Audit Date <span>*</span></label><input id="af-date" type="date"></div>
+        <div class="field"><label>Auditor Name</label><input id="af-auditor" placeholder="Auditor full name"></div>
+        <div class="field"><label>Next Audit Date</label><input id="af-next" type="date"></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Audit Notes</label><textarea id="af-notes" placeholder="General observations, discrepancies, recommendations…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-audit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAudit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Create Audit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: IMPORT ═══ -->
+<div class="overlay" id="modal-import">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>IMPORT CSV</div>
+      <button class="modal-close-btn" onclick="closeModal('modal-import')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">Drop CSV here or click to browse</div><div style="font-size:11px;color:var(--success);margin-bottom:6px">Records will be saved to the SQLite database.</div>
+        <div class="drop-sub">Asset ID · Emp Name · Emp ID · Email ID · Workstation/team name · Status · Owner · Custodian · Branch · Type · OS · Antivirus Name · Patches &amp; version · Manufacturer · Serial No · Model · MotherBoard · Processor · Memory · SSD · HDD · IP address · WLAN mac · Port No · GPU · HEADSET SERIAL NUMBER · MOUSE SERIAL NUMBER</div>
+      </div>
+      <input type="file" id="csv-file" accept=".csv,.txt" style="display:none" onchange="readCSV(event)">
+      <div class="import-preview" id="import-preview"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" id="import-confirm-btn" onclick="doImport()" style="display:none">Import Records</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: PRINT PREVIEW ═══ -->
+<div class="overlay" id="modal-print">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-head">
+      <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span id="print-modal-title">PRINT PREVIEW</span></div>
+      <button class="modal-close-btn" onclick="closeModal('modal-print')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="print-preview" id="print-preview-content"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-print')">Close</button>
+      <button class="btn btn-success" onclick="doPrint()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / Save PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM + TOAST -->
+<div id="confirm-box">
+  <div class="confirm-card">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-msg" id="conf-msg">Are you sure?</div>
+    <div class="confirm-sub" id="conf-sub"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" onclick="closeConfirm(false)">Cancel</button>
+      <button class="btn btn-danger" onclick="closeConfirm(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="toast-root"></div>
+
+<script>
+'use strict';
+// ── SCHEMA ─────────────────────────────────────────────────────────────────
+const FIELDS=[
+  {key:'assetId',label:'Asset ID'},{key:'empName',label:'Emp Name'},{key:'empId',label:'Emp ID'},
+  {key:'email',label:'Email ID'},{key:'workstation',label:'Workstation / Team'},
+  {key:'status',label:'Status'},{key:'owner',label:'Owner'},{key:'custodian',label:'Custodian'},
+  {key:'branch',label:'Branch'},{key:'type',label:'Type'},{key:'os',label:'OS'},{key:'antivirus',label:'Antivirus Name'},
+  {key:'patches',label:'Patches & Version'},{key:'manufacturer',label:'Manufacturer'},
+  {key:'serialNo',label:'Serial No'},{key:'model',label:'Model'},{key:'motherboard',label:'MotherBoard'},
+  {key:'processor',label:'Processor'},{key:'memory',label:'Memory (RAM'},{key:'ssd',label:'SSD'},
+  {key:'hdd',label:'HDD'},{key:'ip',label:'IP Address'},{key:'wlan',label:'WLAN MAC'},
+  {key:'port',label:'Port No'},{key:'gpu',label:'GPU'},
+  {key:'headset',label:'Headset Serial No'},{key:'mouse',label:'Mouse Serial No'},
+];
+const CSV_HEADERS=['Asset ID','Emp Name','Emp ID','Email ID','Workstation/team name','Status','Owner','Custodian','Branch','Type','OS','Antivirus Name','Patches & version','Manufacturer','Serial No','Model','MotherBoard','Processor','Memory','SSD','HDD','IP address','WLAN mac','Port No','GPU','HEADSET SERIAL NUMBER','MOUSE SERIAL NUMBER'];
+const DETAIL_SECTIONS=[
+  {label:'Employee Information',keys:['assetId','empName','empId','email','workstation']},
+  {label:'Ownership & Status',keys:['status','owner','custodian','branch','type']},
+  {label:'Software & Security',keys:['os','antivirus','patches']},
+  {label:'Hardware Specs',keys:['manufacturer','serialNo','model','motherboard','processor','memory','ssd','hdd','gpu']},
+  {label:'Network',keys:['ip','wlan','port']},
+  {label:'Peripherals',keys:['headset','mouse']},
+];
+const AUDIT_CHECKS=[
+  {section:'Physical Condition',items:['Device physically intact (no cracks/damage)','Label/tag visible and readable','All ports functional','Keyboard/mouse condition OK','Screen condition OK (no dead pixels)']},
+  {section:'Software & OS',items:['OS version up to date','Antivirus installed and active','Patches/updates applied','Unnecessary software removed','Disk space within acceptable limits']},
+  {section:'Security & Compliance',items:['Password policy enforced','Screen lock enabled','Bitlocker/encryption active','No unauthorised software','VPN client installed']},
+  {section:'Network & Connectivity',items:['IP address matches records','Network connectivity verified','WLAN MAC matches records','Firewall enabled','Remote management configured']},
+  {section:'Hardware Verification',items:['RAM capacity matches records','Storage capacity matches records','Serial number matches records','Peripherals (mouse/headset) present','All accessories accounted for']},
+  {section:'Documentation',items:['Asset tag matches register','Warranty information current','User acknowledged responsibility','Previous issues documented','Next maintenance date set']},
+];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let DB = [];
+let MLOG = [];
+let HANDOVER = [];
+let AUDIT = [];
+let editId=null, editMlogId=null, editHoId=null;
+let selIds=new Set();
+let sortCol='assetId', sortDir=1;
+let curPage=1; const PER_PAGE=20;
+let csvRows=[];
+let confirmCb=null;
+let currentPrintHTML='';
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/load');
+    const data = await res.json();
+    DB = data.db || [];
+    MLOG = data.mlog || [];
+    HANDOVER = data.handover || [];
+    AUDIT = data.audit || [];
+    updateStats(); populateAssetDropdowns(); render();
+    if(document.getElementById('page-maintenance').classList.contains('active')) renderMlog();
+    if(document.getElementById('page-handover').classList.contains('active')) renderHandover();
+    if(document.getElementById('page-audit').classList.contains('active')) renderAudit();
+    if(document.getElementById('page-labels').classList.contains('active')) renderLabels();
+  } catch (err) {
+    console.error(err);
+    toast('Error loading data from server', 't-error');
+  }
+}
+
+async function persist() {
+  updateStats(); populateAssetDropdowns();
+  try {
+    await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ db: DB, mlog: MLOG, handover: HANDOVER, audit: AUDIT })
+    });
+  } catch(err) {
+    console.error(err);
+    toast('Error saving to server database', 't-error');
+  }
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='maintenance') renderMlog();
+  if(tab==='handover') renderHandover();
+  if(tab==='audit') renderAudit();
+  if(tab==='labels') renderLabels();
+}
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('hs-active').textContent=DB.filter(a=>a.status==='Active').length;
+  document.getElementById('hs-maint').textContent=DB.filter(a=>a.status==='Maintenance').length;
+  document.getElementById('hs-inactive').textContent=DB.filter(a=>a.status==='Inactive').length;
+  document.getElementById('hs-total').textContent=DB.length;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s||'').replace(/'/g,"\\'")}
+function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
+function today(){return new Date().toISOString().slice(0,10)}
+function fdate(d){if(!d)return'—';const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+function pstatus(s,extra=''){const map={Active:'ps-active',Inactive:'ps-inactive',Maintenance:'ps-maintenance',Retired:'ps-retired',Open:'ps-open','In Progress':'ps-progress',Closed:'ps-closed',Pending:'ps-pending',Completed:'ps-active',Cancelled:'ps-inactive'};return`<span class="print-status-badge ${map[s]||''} ${extra}">${s||'—'}</span>`}
+
+function badge(s){
+  const cls={Active:'b-active',Inactive:'b-inactive',Maintenance:'b-maintenance',Retired:'b-retired',Open:'b-open','In Progress':'b-progress',Closed:'b-closed',Pending:'b-pending',Completed:'b-closed',Cancelled:'b-inactive'};
+  return s?`<span class="badge ${cls[s]||'b-retired'}">${s}</span>`:'—';
+}
+
+function populateAssetDropdowns(){
+  const opts=`<option value="">Select Asset…</option>`+DB.map(a=>`<option value="${h(a.assetId)}">${h(a.assetId)}${a.empName?' — '+h(a.empName):''}</option>`).join('');
+  ['mf-assetId','ho-assetId','af-assetId'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts});
+  const labelOpts=`<option value="">All Assets</option>`+DB.map(a=>`<option value="${h(a.assetId)}">${h(a.assetId)}</option>`).join('');
+  ['mlog-filter-asset','audit-filter-asset','label-filter-status'].forEach(id=>{/* skip selects already populated */});
+  const mlogOpts=`<option value="">All Assets</option>`+DB.map(a=>`<option value="${h(a.assetId)}">${h(a.assetId)}</option>`).join('');
+  const mlogEl=document.getElementById('mlog-filter-asset');if(mlogEl)mlogEl.innerHTML=mlogOpts;
+  const auditEl=document.getElementById('audit-filter-asset');if(auditEl)auditEl.innerHTML=`<option value="">All Assets</option>`+DB.map(a=>`<option value="${h(a.assetId)}">${h(a.assetId)}</option>`).join('');
+}
+
+// ── ASSET TABLE ────────────────────────────────────────────────────────────
+function getFiltered(){
+  const q=document.getElementById('q-search').value.trim().toLowerCase();
+  const st=document.getElementById('q-status').value;
+  const ty=document.getElementById('q-type').value;
+  const os=document.getElementById('q-os').value;
+  return DB.filter(a=>{
+    if(st&&a.status!==st)return false;
+    if(ty&&a.type!==ty)return false;
+    if(os&&a.os!==os)return false;
+    if(q)return FIELDS.some(f=>String(a[f.key]||'').toLowerCase().includes(q));
+    return true;
+  }).sort((a,b)=>{const va=String(a[sortCol]||'').toLowerCase(),vb=String(b[sortCol]||'').toLowerCase();return va<vb?-sortDir:va>vb?sortDir:0});
+}
+function onFilter(){curPage=1;render()}
+function resetFilters(){['q-search','q-status','q-type','q-os'].forEach(id=>document.getElementById(id).value='');onFilter()}
+
+document.querySelectorAll('thead th[data-col]').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const col=th.dataset.col;
+    if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1}
+    document.querySelectorAll('thead th').forEach(h2=>h2.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(sortDir===1?'sort-asc':'sort-desc');
+    curPage=1;render();
+  });
+});
+
+function render(){
+  const filtered=getFiltered();
+  const total=filtered.length;
+  const totalPages=Math.max(1,Math.ceil(total/PER_PAGE));
+  if(curPage>totalPages)curPage=totalPages;
+  const start=(curPage-1)*PER_PAGE;
+  const rows=filtered.slice(start,start+PER_PAGE);
+  const tbody=document.getElementById('table-body');
+  const empty=document.getElementById('empty-state');
+  document.getElementById('result-count').textContent=`${total} record${total!==1?'s':''}`;
+  if(total===0){tbody.innerHTML='';empty.style.display='block'}
+  else{
+    empty.style.display='none';
+    tbody.innerHTML=rows.map(a=>`<tr class="${selIds.has(a.assetId)?'row-selected':''}">
+      <td class="chk-cell"><input type="checkbox" ${selIds.has(a.assetId)?'checked':''} onchange="toggleSel('${esc(a.assetId)}',this)"></td>
+      <td class="td-id">${h(a.assetId)||'—'}</td>
+      <td class="td-name">${h(a.empName)||'—'}</td>
+      <td>${h(a.empId)||'—'}</td>
+      <td title="${h(a.email)||''}">${h(a.email)||'—'}</td>
+      <td>${h(a.workstation)||'—'}</td>
+      <td>${badge(a.status)}</td>
+      <td>${h(a.owner)||'—'}</td>
+      <td>${h(a.custodian)||'—'}</td>
+      <td>${h(a.branch)||'—'}</td>
+      <td>${a.type?`<span class="chip">${h(a.type)}</span>`:'—'}</td>
+      <td>${h(a.os)||'—'}</td>
+      <td>${h(a.antivirus)||'—'}</td>
+      <td>${h(a.patches)||'—'}</td>
+      <td>${h(a.manufacturer)||'—'}</td>
+      <td>${h(a.serialNo)||'—'}</td>
+      <td>${h(a.model)||'—'}</td>
+      <td>${h(a.motherboard)||'—'}</td>
+      <td>${h(a.processor)||'—'}</td>
+      <td>${h(a.memory)||'—'}</td>
+      <td>${h(a.ssd)||'—'}</td>
+      <td>${h(a.hdd)||'—'}</td>
+      <td>${h(a.ip)||'—'}</td>
+      <td>${h(a.wlan)||'—'}</td>
+      <td>${h(a.port)||'—'}</td>
+      <td>${h(a.gpu)||'—'}</td>
+      <td>${h(a.headset)||'—'}</td>
+      <td>${h(a.mouse)||'—'}</td>
+      <td class="td-actions">
+        <div class="act-btns">
+          <button class="act-btn" onclick="viewAsset('${esc(a.assetId)}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View
+          </button>
+          <button class="act-btn" onclick="openEdit('${esc(a.assetId)}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+          </button>
+          <button class="act-btn prn" onclick="printAssetSheet('${esc(a.assetId)}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print
+          </button>
+          <button class="act-btn del" onclick="deleteAsset('${esc(a.assetId)}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>Del
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+  }
+  const allChk=document.getElementById('chk-all');
+  const pageIds=rows.map(a=>a.assetId);
+  if(allChk){allChk.checked=pageIds.length>0&&pageIds.every(id=>selIds.has(id));allChk.indeterminate=!allChk.checked&&pageIds.some(id=>selIds.has(id))}
+  document.getElementById('sel-count').textContent=`${selIds.size} selected`;
+  document.getElementById('sel-bar').classList.toggle('show',selIds.size>0);
+  renderPagination(total,totalPages,start);
+}
+
+function renderPagination(total,totalPages,start){
+  const from=total===0?0:start+1,to=Math.min(start+PER_PAGE,total);
+  document.getElementById('page-info').textContent=`Showing ${from}–${to} of ${total} assets`;
+  const c=document.getElementById('pg-btns');c.innerHTML='';
+  const prev=document.createElement('button');prev.className='pg-btn';prev.textContent='← Prev';prev.disabled=curPage<=1;prev.onclick=()=>{curPage--;render()};c.appendChild(prev);
+  buildPageRange(curPage,totalPages).forEach(p=>{
+    if(p==='…'){const e=document.createElement('span');e.className='pg-ellipsis';e.textContent='…';c.appendChild(e)}
+    else{const btn=document.createElement('button');btn.className='pg-btn'+(p===curPage?' pg-active':'');btn.textContent=p;btn.onclick=()=>{curPage=p;render()};c.appendChild(btn)}
+  });
+  const next=document.createElement('button');next.className='pg-btn';next.textContent='Next →';next.disabled=curPage>=totalPages;next.onclick=()=>{curPage++;render()};c.appendChild(next);
+}
+function buildPageRange(cur,total){
+  if(total<=7)return Array.from({length:total},(_,i)=>i+1);
+  const pages=[];const push=n=>!pages.includes(n)&&pages.push(n);
+  [1,cur-1,cur,cur+1,total].forEach(p=>{if(p>=1&&p<=total)push(p)});
+  pages.sort((a,b)=>a-b);
+  const result=[];let prev=null;
+  pages.forEach(p=>{if(prev&&p-prev>1)result.push('…');result.push(p);prev=p});
+  return result;
+}
+
+function toggleSel(id,cb){cb.checked?selIds.add(id):selIds.delete(id);render()}
+function toggleAll(cb){const filtered=getFiltered();const pageRows=filtered.slice((curPage-1)*PER_PAGE,curPage*PER_PAGE);pageRows.forEach(a=>cb.checked?selIds.add(a.assetId):selIds.delete(a.assetId));render()}
+function clearSelection(){selIds.clear();render()}
+function bulkDelete(){if(!selIds.size)return;confirm2(`Delete ${selIds.size} selected asset(s)?`,'This cannot be undone.',()=>{DB=DB.filter(a=>!selIds.has(a.assetId));selIds.clear();persist();render();toast(`Assets deleted`,'t-success')})}
+
+// ── ASSET CRUD ─────────────────────────────────────────────────────────────
+function openAdd(){editId=null;document.getElementById('form-title').textContent='NEW ASSET';FIELDS.forEach(f=>{const el=document.getElementById('f-'+f.key);if(el)el.value=''});document.getElementById('f-status').value='Active';document.getElementById('f-type').value='Desktop';document.getElementById('f-os').value='Windows 11';openModal('modal-form')}
+function openEdit(id){
+  const a=DB.find(x=>x.assetId===id);if(!a)return;
+  editId=id;document.getElementById('form-title').textContent=`EDIT :: ${id}`;
+  FIELDS.forEach(f=>{const el=document.getElementById('f-'+f.key);if(el)el.value=a[f.key]||''});openModal('modal-form');
+}
+function saveAsset(){
+  const assetId=(document.getElementById('f-assetId').value||'').trim();
+  if(!assetId){toast('Asset ID is required','t-error');return}
+  if(!editId&&DB.find(a=>a.assetId===assetId)){toast('Asset ID already exists','t-error');return}
+  const obj={};FIELDS.forEach(f=>{const el=document.getElementById('f-'+f.key);obj[f.key]=el?el.value.trim():''});
+  if(editId){const idx=DB.findIndex(a=>a.assetId===editId);if(idx!==-1)DB[idx]=obj;toast('Asset updated','t-success')}
+  else{DB.push(obj);toast('Asset added','t-success')}
+  persist();closeModal('modal-form');render();
+}
+function deleteAsset(id){confirm2(`Delete asset "${id}"?`,'This action cannot be undone.',()=>{DB=DB.filter(a=>a.assetId!==id);selIds.delete(id);persist();render();toast(`Asset ${id} deleted`,'t-info')})}
+function viewAsset(id){
+  const a=DB.find(x=>x.assetId===id);if(!a)return;
+  const fMap=Object.fromEntries(FIELDS.map(f=>[f.key,f.label]));
+  let html='';
+  DETAIL_SECTIONS.forEach(sec=>{
+    html+=`<div class="sec-label">${sec.label}</div><div class="detail-grid">`;
+    sec.keys.forEach(k=>{const val=a[k];html+=`<div class="det-item"><div class="det-k">${fMap[k]||k}</div><div class="det-v ${!val?'empty':''}">${h(val)||'N/A'}</div></div>`});
+    html+=`</div>`;
+  });
+  document.getElementById('detail-title').textContent=`${a.assetId}${a.empName?' :: '+a.empName:''}`;
+  document.getElementById('detail-body').innerHTML=html;
+  document.getElementById('detail-edit-btn').onclick=()=>{closeModal('modal-detail');openEdit(id)};
+  document.getElementById('detail-print-btn').onclick=()=>{closeModal('modal-detail');printAssetSheet(id)};
+  openModal('modal-detail');
+}
+
+// ── MAINTENANCE LOG ────────────────────────────────────────────────────────
+function openMlogForm(id){
+  editMlogId=id||null;
+  document.getElementById('mlog-form-title').textContent=id?'EDIT LOG ENTRY':'NEW MAINTENANCE LOG';
+  if(id){
+    const m=MLOG.find(x=>x.id===id);if(!m)return;
+    ['assetId','date','scheduled','status','type','priority','tech','cost','desc','notes'].forEach(k=>{const el=document.getElementById('mf-'+k);if(el)el.value=m[k]||''});
+  } else {
+    ['assetId','scheduled','tech','cost','desc','notes'].forEach(k=>{const el=document.getElementById('mf-'+k);if(el)el.value=''});
+    document.getElementById('mf-date').value=today();
+    document.getElementById('mf-status').value='Open';
+    document.getElementById('mf-type').value='Preventive';
+    document.getElementById('mf-priority').value='Medium';
+  }
+  openModal('modal-mlog');
+}
+function saveMlog(){
+  const assetId=document.getElementById('mf-assetId').value;
+  const desc=document.getElementById('mf-desc').value.trim();
+  const date=document.getElementById('mf-date').value;
+  if(!assetId||!desc||!date){toast('Asset, date and description are required','t-error');return}
+  const obj={id:editMlogId||uid(),assetId,date,scheduled:document.getElementById('mf-scheduled').value,status:document.getElementById('mf-status').value,type:document.getElementById('mf-type').value,priority:document.getElementById('mf-priority').value,tech:document.getElementById('mf-tech').value,cost:document.getElementById('mf-cost').value,desc,notes:document.getElementById('mf-notes').value};
+  if(editMlogId){const idx=MLOG.findIndex(x=>x.id===editMlogId);if(idx!==-1)MLOG[idx]=obj;toast('Log updated','t-success')}
+  else{MLOG.unshift(obj);toast('Log entry added','t-success')}
+  persist();closeModal('modal-mlog');renderMlog();
+}
+function deleteMlog(id){confirm2('Delete this log entry?','This cannot be undone.',()=>{MLOG=MLOG.filter(x=>x.id!==id);persist();renderMlog();toast('Log deleted','t-info')})}
+
+function renderMlog(){
+  const fa=document.getElementById('mlog-filter-asset').value;
+  const fs=document.getElementById('mlog-filter-status').value;
+  const filtered=MLOG.filter(m=>{
+    if(fa&&m.assetId!==fa)return false;
+    if(fs&&m.status!==fs)return false;
+    return true;
+  });
+  const priorityColor={Low:'var(--text-dim)',Medium:'var(--warning)',High:'var(--danger)',Critical:'var(--danger)'};
+  const grid=document.getElementById('mlog-grid');
+  if(!filtered.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔧</div><div class="empty-title">NO MAINTENANCE LOGS</div><div class="empty-sub">Click "New Log Entry" to add a record</div></div>`;return}
+  grid.innerHTML=filtered.map(m=>{
+    const asset=DB.find(a=>a.assetId===m.assetId)||{};
+    return`<div class="mlog-card">
+      <div class="mlog-top">
+        <div><div class="mlog-id">${h(m.assetId)}${asset.model?' · '+h(asset.model):''}</div><div class="mlog-title">${h(m.type)} — ${h(m.desc.slice(0,60))}${m.desc.length>60?'…':''}</div></div>
+        ${badge(m.status)}
+      </div>
+      <div class="mlog-meta">
+        <div class="mlog-kv"><span class="mlog-k">Date</span><span class="mlog-v">${fdate(m.date)}</span></div>
+        <div class="mlog-kv"><span class="mlog-k">Scheduled</span><span class="mlog-v">${fdate(m.scheduled)}</span></div>
+        <div class="mlog-kv"><span class="mlog-k">Technician</span><span class="mlog-v">${h(m.tech)||'—'}</span></div>
+        <div class="mlog-kv"><span class="mlog-k">Priority</span><span class="mlog-v" style="color:${priorityColor[m.priority]||'inherit'}">${h(m.priority)}</span></div>
+        ${m.cost?`<div class="mlog-kv"><span class="mlog-k">Cost</span><span class="mlog-v">₹${h(m.cost)}</span></div>`:''}
+      </div>
+      ${m.desc?`<div class="mlog-desc">${h(m.desc)}</div>`:''}
+      ${m.notes?`<div class="mlog-desc" style="border-color:rgba(0,230,118,0.2);color:var(--success)">✓ ${h(m.notes)}</div>`:''}
+      <div class="mlog-foot">
+        <button class="btn btn-success btn-sm" onclick="printMlog('${esc(m.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="openMlogForm('${esc(m.id)}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMlog('${esc(m.id)}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── HANDOVER ───────────────────────────────────────────────────────────────
+function openHandoverForm(id){
+  editHoId=id||null;
+  document.getElementById('ho-form-title').textContent=id?'EDIT HANDOVER':'NEW HANDOVER / TRANSFER';
+  const items=['laptop','charger','mouse','keyboard','headset','bag','docking','monitor'];
+  if(id){
+    const ho=HANDOVER.find(x=>x.id===id);if(!ho)return;
+    ['assetId','type','date','status','from-name','from-id','from-dept','from-loc','to-name','to-id','to-dept','to-loc','condition','remarks'].forEach(k=>{const el=document.getElementById('ho-'+k);if(el)el.value=ho[k.replace('-','_')]||''});
+    items.forEach(it=>{const el=document.getElementById('ho-item-'+it);if(el)el.checked=!!(ho.items&&ho.items[it])});
+  } else {
+    ['assetId','from-name','from-id','from-dept','from-loc','to-name','to-id','to-dept','to-loc','remarks'].forEach(k=>{const el=document.getElementById('ho-'+k);if(el)el.value=''});
+    document.getElementById('ho-date').value=today();
+    document.getElementById('ho-status').value='Pending';
+    document.getElementById('ho-type').value='Assignment';
+    document.getElementById('ho-condition').value='Good';
+    items.forEach(it=>{const el=document.getElementById('ho-item-'+it);if(el)el.checked=false});
+  }
+  openModal('modal-handover');
+}
+function saveHandover(){
+  const assetId=document.getElementById('ho-assetId').value;
+  const date=document.getElementById('ho-date').value;
+  if(!assetId||!date){toast('Asset and date are required','t-error');return}
+  const items={};['laptop','charger','mouse','keyboard','headset','bag','docking','monitor'].forEach(it=>{items[it]=document.getElementById('ho-item-'+it).checked});
+  const obj={id:editHoId||uid(),assetId,type:document.getElementById('ho-type').value,date,status:document.getElementById('ho-status').value,from_name:document.getElementById('ho-from-name').value,from_id:document.getElementById('ho-from-id').value,from_dept:document.getElementById('ho-from-dept').value,from_loc:document.getElementById('ho-from-loc').value,to_name:document.getElementById('ho-to-name').value,to_id:document.getElementById('ho-to-id').value,to_dept:document.getElementById('ho-to-dept').value,to_loc:document.getElementById('ho-to-loc').value,condition:document.getElementById('ho-condition').value,remarks:document.getElementById('ho-remarks').value,items};
+  if(editHoId){const idx=HANDOVER.findIndex(x=>x.id===editHoId);if(idx!==-1)HANDOVER[idx]=obj;toast('Handover updated','t-success')}
+  else{HANDOVER.unshift(obj);toast('Handover record added','t-success')}
+  persist();closeModal('modal-handover');renderHandover();
+}
+function deleteHandover(id){confirm2('Delete this handover record?','This cannot be undone.',()=>{HANDOVER=HANDOVER.filter(x=>x.id!==id);persist();renderHandover();toast('Handover deleted','t-info')})}
+
+function renderHandover(){
+  const fs=document.getElementById('ho-filter-status').value;
+  const filtered=HANDOVER.filter(ho=>!fs||ho.status===fs);
+  const list=document.getElementById('handover-list');
+  if(!filtered.length){list.innerHTML=`<div class="empty"><div class="empty-icon">🤝</div><div class="empty-title">NO HANDOVER RECORDS</div><div class="empty-sub">Click "New Handover" to create a transfer document</div></div>`;return}
+  const ITEM_LABELS={laptop:'Laptop/Desktop',charger:'Charger/Adapter',mouse:'Mouse',keyboard:'Keyboard',headset:'Headset',bag:'Laptop Bag',docking:'Docking Station',monitor:'Monitor'};
+  list.innerHTML=filtered.map(ho=>{
+    const asset=DB.find(a=>a.assetId===ho.assetId)||{};
+    const includedItems=Object.entries(ho.items||{}).filter(([,v])=>v).map(([k])=>ITEM_LABELS[k]||k);
+    return`<div class="handover-card">
+      <div class="handover-top">
+        <div><div class="handover-ref">REF: ${h(ho.id.slice(-8).toUpperCase())} · ${fdate(ho.date)}</div><div class="handover-title">${h(ho.type)} — ${h(ho.assetId)}${asset.model?' ('+h(asset.model)+')':''}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">${badge(ho.status)}<span class="chip">${h(ho.condition)}</span></div>
+      </div>
+      <div class="handover-cols">
+        <div><div class="handover-side-label">From</div>
+          <div class="hkv"><span class="hkv-k">Name</span><span class="hkv-v">${h(ho.from_name)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Emp ID</span><span class="hkv-v">${h(ho.from_id)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Department</span><span class="hkv-v">${h(ho.from_dept)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Location</span><span class="hkv-v">${h(ho.from_loc)||'—'}</span></div>
+        </div>
+        <div><div class="handover-side-label">To</div>
+          <div class="hkv"><span class="hkv-k">Name</span><span class="hkv-v">${h(ho.to_name)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Emp ID</span><span class="hkv-v">${h(ho.to_id)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Department</span><span class="hkv-v">${h(ho.to_dept)||'—'}</span></div>
+          <div class="hkv"><span class="hkv-k">Location</span><span class="hkv-v">${h(ho.to_loc)||'—'}</span></div>
+        </div>
+      </div>
+      ${includedItems.length?`<div class="handover-items"><div class="handover-side-label" style="margin-bottom:8px">Items Included</div>${includedItems.map(it=>`<div class="handover-item-row"><span class="hi-check">✓</span>${h(it)}</div>`).join('')}</div>`:''}
+      ${ho.remarks?`<div class="mlog-desc">${h(ho.remarks)}</div>`:''}
+      <div class="handover-foot">
+        <button class="btn btn-success btn-sm" onclick="printHandover('${esc(ho.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print Form</button>
+        <button class="btn btn-ghost btn-sm" onclick="openHandoverForm('${esc(ho.id)}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteHandover('${esc(ho.id)}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── AUDIT ──────────────────────────────────────────────────────────────────
+function openAuditForm(){
+  document.getElementById('audit-form-title').textContent='NEW AUDIT CHECKLIST';
+  ['af-assetId','af-auditor','af-notes'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=''});
+  document.getElementById('af-date').value=today();
+  document.getElementById('af-next').value='';
+  openModal('modal-audit');
+}
+function saveAudit(){
+  const assetId=document.getElementById('af-assetId').value;
+  const date=document.getElementById('af-date').value;
+  if(!assetId||!date){toast('Asset and date are required','t-error');return}
+  const checks={};
+  AUDIT_CHECKS.forEach(sec=>sec.items.forEach((_,i)=>{checks[sec.section+'_'+i]=false}));
+  const obj={id:uid(),assetId,date,next:document.getElementById('af-next').value,auditor:document.getElementById('af-auditor').value,notes:document.getElementById('af-notes').value,checks,completed:false};
+  AUDIT.unshift(obj);persist();closeModal('modal-audit');renderAudit();toast('Audit checklist created','t-success');
+}
+function deleteAudit(id){confirm2('Delete this audit record?','This cannot be undone.',()=>{AUDIT=AUDIT.filter(x=>x.id!==id);persist();renderAudit();toast('Audit deleted','t-info')})}
+
+function updateAuditCheck(auditId,key,val){
+  const idx=AUDIT.findIndex(a=>a.id===auditId);if(idx===-1)return;
+  AUDIT[idx].checks[key]=val;
+  const total=Object.keys(AUDIT[idx].checks).length;
+  const done=Object.values(AUDIT[idx].checks).filter(Boolean).length;
+  AUDIT[idx].completed=done===total;
+  persist();
+  // update progress bar
+  const bar=document.getElementById('prog-'+auditId);
+  if(bar){bar.style.width=`${Math.round(done/total*100)}%`;const label=document.getElementById('prog-label-'+auditId);if(label)label.textContent=`${done}/${total} items verified (${Math.round(done/total*100)}%)`}
+}
+
+function renderAudit(){
+  const fa=document.getElementById('audit-filter-asset').value;
+  const filtered=AUDIT.filter(a=>!fa||a.assetId===fa);
+  const list=document.getElementById('audit-list');
+  if(!filtered.length){list.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">NO AUDIT RECORDS</div><div class="empty-sub">Click "New Audit" to start an asset verification</div></div>`;return}
+  list.innerHTML=filtered.map(au=>{
+    const asset=DB.find(a=>a.assetId===au.assetId)||{};
+    const total=Object.keys(au.checks).length;
+    const done=Object.values(au.checks).filter(Boolean).length;
+    const pct=total>0?Math.round(done/total*100):0;
+    const sectionsHTML=AUDIT_CHECKS.map(sec=>`
+      <div class="audit-sec">
+        <div class="audit-sec-title">${sec.section}</div>
+        ${sec.items.map((item,i)=>{
+          const key=sec.section+'_'+i;
+          const checked=au.checks[key]||false;
+          return`<div class="audit-check-row">
+            <input type="checkbox" ${checked?'checked':''} onchange="updateAuditCheck('${esc(au.id)}','${esc(key)}',this.checked)">
+            <span class="audit-check-label">${h(item)}</span>
+            <span class="audit-check-val" style="${checked?'border-color:var(--success);color:var(--success)':''}">${checked?'✓ Pass':'Pending'}</span>
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+    return`<div class="audit-card">
+      <div class="audit-header">
+        <div class="audit-asset-info">
+          <div class="audit-info-kv"><span class="audit-info-k">Asset ID</span><span class="audit-info-v text-accent">${h(au.assetId)}</span></div>
+          ${asset.empName?`<div class="audit-info-kv"><span class="audit-info-k">Assigned To</span><span class="audit-info-v">${h(asset.empName)}</span></div>`:''}
+          ${asset.model?`<div class="audit-info-kv"><span class="audit-info-k">Model</span><span class="audit-info-v">${h(asset.model)}</span></div>`:''}
+          <div class="audit-info-kv"><span class="audit-info-k">Audit Date</span><span class="audit-info-v">${fdate(au.date)}</span></div>
+          ${au.auditor?`<div class="audit-info-kv"><span class="audit-info-k">Auditor</span><span class="audit-info-v">${h(au.auditor)}</span></div>`:''}
+          ${au.next?`<div class="audit-info-kv"><span class="audit-info-k">Next Audit</span><span class="audit-info-v">${fdate(au.next)}</span></div>`:''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">${badge(au.completed?'Closed':'Open')}
+          <button class="btn btn-success btn-sm" onclick="printAudit('${esc(au.id)}')">Print</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAudit('${esc(au.id)}')">Delete</button>
+        </div>
+      </div>
+      <div class="audit-progress">
+        <span id="prog-label-${h(au.id)}">${done}/${total} items verified (${pct}%)</span>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-${h(au.id)}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="audit-sections">${sectionsHTML}</div>
+      ${au.notes?`<div class="mlog-desc">${h(au.notes)}</div>`:''}
+      <div class="audit-foot">
+        <button class="btn btn-success btn-sm" onclick="printAudit('${esc(au.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print Report</button>
+        <button class="btn btn-warn btn-sm" onclick="resetAudit('${esc(au.id)}')">Reset Checks</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAudit('${esc(au.id)}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function resetAudit(id){confirm2('Reset all checks for this audit?','All verified items will be cleared.',()=>{const idx=AUDIT.findIndex(a=>a.id===id);if(idx!==-1){Object.keys(AUDIT[idx].checks).forEach(k=>AUDIT[idx].checks[k]=false);AUDIT[idx].completed=false;persist();renderAudit();toast('Audit checks reset','t-warn')}})}
+
+// ── LABELS ─────────────────────────────────────────────────────────────────
+function renderLabels(){
+  const fs=document.getElementById('label-filter-status').value;
+  const filtered=DB.filter(a=>!fs||a.status===fs);
+  const grid=document.getElementById('label-grid');
+  if(!filtered.length){grid.innerHTML=`<div class="empty" style="width:100%"><div class="empty-icon">🏷️</div><div class="empty-title">NO ASSETS TO LABEL</div><div class="empty-sub">Add assets in the Assets tab first</div></div>`;return}
+  grid.innerHTML=filtered.map(a=>labelCardHTML(a)).join('');
+}
+
+function labelCardHTML(a){
+  const barPattern=genBarcode(a.assetId);
+  return`<div class="label-card">
+    <div class="label-preview">
+      <div class="lp-header">
+        <div class="lp-logo">ASSETCORE</div>
+        <div class="lp-type">${h(a.type||'ASSET')}</div>
+      </div>
+      <div class="lp-main">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div class="lp-asset-id">${h(a.assetId)}</div>
+            <div class="lp-name">${h(a.empName||'Unassigned')}</div>
+            ${a.empId?`<div class="lp-row"><span>Emp ID:</span><span>${h(a.empId)}</span></div>`:''}
+            ${a.serialNo?`<div class="lp-row"><span>S/N:</span><span>${h(a.serialNo)}</span></div>`:''}
+            ${a.manufacturer?`<div class="lp-row"><span>MFR:</span><span>${h(a.manufacturer)}</span></div>`:''}
+            ${a.model?`<div class="lp-row"><span>Model:</span><span>${h(a.model)}</span></div>`:''}
+          </div>
+          <div class="lp-qr"><div class="lp-qr-inner">${h(a.assetId.slice(0,4))}</div></div>
+        </div>
+      </div>
+      <div class="lp-bottom">
+        <div class="lp-barcode">
+          <div class="lp-bar">${barPattern}</div>
+          <div class="lp-barcode-num">${h(a.assetId)}</div>
+        </div>
+        <div style="font-size:8px;color:#888;text-align:right">${h(a.status||'')}<br>${new Date().getFullYear()}</div>
+      </div>
+    </div>
+    <div class="label-card-actions">
+      <button class="btn btn-success btn-sm" style="flex:1" onclick="printSingleLabel('${esc(a.assetId)}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Label
+      </button>
+    </div>
+  </div>`;
+}
+
+function genBarcode(str){
+  // deterministic pseudo-barcode from string
+  let s='';
+  const widths=[1,1,2,1,3,1,2,2,1,1,3,2,1,1,2,1,1,2,1,3];
+  for(let i=0;i<20;i++){const w=widths[(str.charCodeAt(i%str.length)+i)%widths.length];s+=`<div style="width:${w}px;flex-shrink:0;background:#000;height:${24+Math.sin(i)*4}px"></div>`}
+  return s;
+}
+
+// ── PRINT TEMPLATES ────────────────────────────────────────────────────────
+function printAssetSheet(id){
+  const a=DB.find(x=>x.assetId===id);if(!a)return;
+  const fMap=Object.fromEntries(FIELDS.map(f=>[f.key,f.label]));
+  let sectionsHTML='';
+  DETAIL_SECTIONS.forEach(sec=>{
+    sectionsHTML+=`<div class="print-section-title">${sec.label}</div><div class="print-grid">`;
+    sec.keys.forEach(k=>{sectionsHTML+=`<div class="print-field"><div class="print-field-k">${fMap[k]||k}</div><div class="print-field-v">${h(a[k]||'—')}</div></div>`});
+    sectionsHTML+=`</div>`;
+  });
+  const html=`<div class="print-doc">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Asset Information Sheet</div></div>
+      <div class="print-doc-meta">
+        <div><strong>Asset ID:</strong> ${h(a.assetId)}</div>
+        <div><strong>Status:</strong> ${pstatus(a.status)}</div>
+        <div><strong>Printed:</strong> ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+      </div>
+    </div>
+    ${sectionsHTML}
+    <div class="print-sig-row">
+      <div class="print-sig-box"><div class="print-sig-label">IT Manager Signature</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+      <div class="print-sig-box"><div class="print-sig-label">Asset Owner Signature</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+    </div>
+  </div>`;
+  showPrint('ASSET INFORMATION SHEET',html);
+}
+
+function printMlog(id){
+  const m=MLOG.find(x=>x.id===id);if(!m)return;
+  const asset=DB.find(a=>a.assetId===m.assetId)||{};
+  const statusCls={'Open':'ps-open','In Progress':'ps-progress','Closed':'ps-closed'};
+  const prioColor={Low:'#555',Medium:'#856404',High:'#721c24',Critical:'#721c24'};
+  const html=`<div class="print-doc">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Maintenance Service Report</div></div>
+      <div class="print-doc-meta">
+        <div><strong>Ref:</strong> ${h(m.id.slice(-8).toUpperCase())}</div>
+        <div><strong>Status:</strong> <span class="print-status-badge ${statusCls[m.status]||''}">${h(m.status)}</span></div>
+        <div><strong>Date:</strong> ${fdate(m.date)}</div>
+      </div>
+    </div>
+    <div class="print-section-title">Asset Details</div>
+    <div class="print-grid">
+      <div class="print-field"><div class="print-field-k">Asset ID</div><div class="print-field-v">${h(m.assetId)}</div></div>
+      <div class="print-field"><div class="print-field-k">Emp Name</div><div class="print-field-v">${h(asset.empName||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Model</div><div class="print-field-v">${h(asset.model||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Serial No</div><div class="print-field-v">${h(asset.serialNo||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">OS</div><div class="print-field-v">${h(asset.os||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">IP Address</div><div class="print-field-v">${h(asset.ip||'—')}</div></div>
+    </div>
+    <div class="print-section-title">Maintenance Details</div>
+    <div class="print-grid">
+      <div class="print-field"><div class="print-field-k">Type</div><div class="print-field-v">${h(m.type)}</div></div>
+      <div class="print-field"><div class="print-field-k">Priority</div><div class="print-field-v" style="color:${prioColor[m.priority]||'#000'};font-weight:700">${h(m.priority)}</div></div>
+      <div class="print-field"><div class="print-field-k">Technician</div><div class="print-field-v">${h(m.tech||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Service Date</div><div class="print-field-v">${fdate(m.date)}</div></div>
+      <div class="print-field"><div class="print-field-k">Scheduled Date</div><div class="print-field-v">${fdate(m.scheduled)}</div></div>
+      ${m.cost?`<div class="print-field"><div class="print-field-k">Cost</div><div class="print-field-v">₹${h(m.cost)}</div></div>`:''}
+    </div>
+    <div class="print-section-title">Issue Description</div>
+    <div style="border:1px solid #ddd;border-radius:4px;padding:12px 14px;background:#f9f9f9;margin-bottom:12px;font-size:12px;line-height:1.7">${h(m.desc)}</div>
+    ${m.notes?`<div class="print-section-title">Resolution / Notes</div><div style="border:1px solid #c3e6cb;border-radius:4px;padding:12px 14px;background:#f0fff4;margin-bottom:12px;font-size:12px;line-height:1.7;color:#155724">${h(m.notes)}</div>`:''}
+    <div class="print-sig-row">
+      <div class="print-sig-box"><div class="print-sig-label">Technician Signature</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+      <div class="print-sig-box"><div class="print-sig-label">Supervisor Approval</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+    </div>
+  </div>`;
+  showPrint('MAINTENANCE SERVICE REPORT',html);
+}
+
+function printHandover(id){
+  const ho=HANDOVER.find(x=>x.id===id);if(!ho)return;
+  const asset=DB.find(a=>a.assetId===ho.assetId)||{};
+  const ITEM_LABELS={laptop:'Laptop/Desktop',charger:'Charger/Adapter',mouse:'Mouse',keyboard:'Keyboard',headset:'Headset',bag:'Laptop Bag',docking:'Docking Station',monitor:'Monitor'};
+  const itemRows=Object.entries(ITEM_LABELS).map(([k,label])=>`<div class="print-checklist-item"><div class="print-checkbox ${ho.items&&ho.items[k]?'checked':''}">${ho.items&&ho.items[k]?'✓':''}</div><span>${label}</span></div>`).join('');
+  const html=`<div class="print-doc">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Asset Handover / Transfer Form</div></div>
+      <div class="print-doc-meta">
+        <div><strong>Ref:</strong> ${h(ho.id.slice(-8).toUpperCase())}</div>
+        <div><strong>Type:</strong> ${h(ho.type)}</div>
+        <div><strong>Date:</strong> ${fdate(ho.date)}</div>
+        <div><strong>Status:</strong> ${pstatus(ho.status)}</div>
+      </div>
+    </div>
+    <div class="print-section-title">Asset Details</div>
+    <div class="print-grid">
+      <div class="print-field"><div class="print-field-k">Asset ID</div><div class="print-field-v">${h(ho.assetId)}</div></div>
+      <div class="print-field"><div class="print-field-k">Model</div><div class="print-field-v">${h(asset.model||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Serial No</div><div class="print-field-v">${h(asset.serialNo||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Type</div><div class="print-field-v">${h(asset.type||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Condition</div><div class="print-field-v" style="font-weight:700">${h(ho.condition)}</div></div>
+      <div class="print-field"><div class="print-field-k">OS</div><div class="print-field-v">${h(asset.os||'—')}</div></div>
+    </div>
+    <table class="print-table">
+      <thead><tr><th></th><th>From (Current Holder)</th><th>To (New Holder)</th></tr></thead>
+      <tbody>
+        <tr><td style="font-size:10px;color:#888;font-weight:700;letter-spacing:1px">NAME</td><td>${h(ho.from_name||'—')}</td><td>${h(ho.to_name||'—')}</td></tr>
+        <tr><td style="font-size:10px;color:#888;font-weight:700;letter-spacing:1px">EMP ID</td><td>${h(ho.from_id||'—')}</td><td>${h(ho.to_id||'—')}</td></tr>
+        <tr><td style="font-size:10px;color:#888;font-weight:700;letter-spacing:1px">DEPT</td><td>${h(ho.from_dept||'—')}</td><td>${h(ho.to_dept||'—')}</td></tr>
+        <tr><td style="font-size:10px;color:#888;font-weight:700;letter-spacing:1px">LOCATION</td><td>${h(ho.from_loc||'—')}</td><td>${h(ho.to_loc||'—')}</td></tr>
+      </tbody>
+    </table>
+    <div class="print-section-title">Items Checklist</div>
+    <div style="columns:2;gap:20px">${itemRows}</div>
+    ${ho.remarks?`<div class="print-section-title">Remarks</div><div style="border:1px solid #ddd;border-radius:4px;padding:12px;background:#f9f9f9;font-size:12px">${h(ho.remarks)}</div>`:''}
+    <div class="print-sig-row" style="margin-top:20px">
+      <div class="print-sig-box"><div class="print-sig-label">Handed Over By</div><div style="height:50px"></div><div class="print-sig-label">Signature & Date</div></div>
+      <div class="print-sig-box"><div class="print-sig-label">Received By</div><div style="height:50px"></div><div class="print-sig-label">Signature & Date</div></div>
+    </div>
+    <div class="print-sig-row">
+      <div class="print-sig-box"><div class="print-sig-label">IT Manager</div><div style="height:50px"></div><div class="print-sig-label">Signature & Date</div></div>
+      <div class="print-sig-box"><div class="print-sig-label">HR / Admin</div><div style="height:50px"></div><div class="print-sig-label">Signature & Date</div></div>
+    </div>
+  </div>`;
+  showPrint('ASSET HANDOVER FORM',html);
+}
+
+function printAudit(id){
+  const au=AUDIT.find(x=>x.id===id);if(!au)return;
+  const asset=DB.find(a=>a.assetId===au.assetId)||{};
+  const total=Object.keys(au.checks).length;
+  const done=Object.values(au.checks).filter(Boolean).length;
+  const pct=total>0?Math.round(done/total*100):0;
+  let sectionsHTML='';
+  AUDIT_CHECKS.forEach(sec=>{
+    sectionsHTML+=`<div class="print-section-title">${sec.section}</div>`;
+    sec.items.forEach((item,i)=>{
+      const key=sec.section+'_'+i;
+      const checked=au.checks[key]||false;
+      sectionsHTML+=`<div class="print-checklist-item"><div class="print-checkbox ${checked?'checked':''}">${checked?'✓':''}</div><span style="flex:1">${h(item)}</span><span style="font-size:10px;font-weight:700;color:${checked?'#155724':'#721c24'}">${checked?'PASS':'FAIL'}</span></div>`;
+    });
+  });
+  const html=`<div class="print-doc">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Asset Audit & Verification Report</div></div>
+      <div class="print-doc-meta">
+        <div><strong>Asset ID:</strong> ${h(au.assetId)}</div>
+        <div><strong>Date:</strong> ${fdate(au.date)}</div>
+        <div><strong>Auditor:</strong> ${h(au.auditor||'—')}</div>
+        <div><strong>Score:</strong> ${done}/${total} (${pct}%)</div>
+      </div>
+    </div>
+    <div class="print-section-title">Asset Summary</div>
+    <div class="print-grid">
+      <div class="print-field"><div class="print-field-k">Asset ID</div><div class="print-field-v">${h(au.assetId)}</div></div>
+      <div class="print-field"><div class="print-field-k">Assigned To</div><div class="print-field-v">${h(asset.empName||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Model</div><div class="print-field-v">${h(asset.model||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Serial No</div><div class="print-field-v">${h(asset.serialNo||'—')}</div></div>
+      <div class="print-field"><div class="print-field-k">Status</div><div class="print-field-v">${pstatus(asset.status)}</div></div>
+      <div class="print-field"><div class="print-field-k">Next Audit</div><div class="print-field-v">${fdate(au.next)}</div></div>
+    </div>
+    <div style="background:#f0f8ff;border:1px solid #b8daff;border-radius:4px;padding:10px 14px;margin:12px 0;font-size:12px">
+      <strong>Compliance Score: ${pct}%</strong> — ${done} of ${total} checks passed
+      <div style="height:8px;background:#ddd;border-radius:4px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>=80?'#28a745':pct>=50?'#ffc107':'#dc3545'};border-radius:4px"></div></div>
+    </div>
+    ${sectionsHTML}
+    ${au.notes?`<div class="print-section-title">Auditor Notes</div><div style="border:1px solid #ddd;border-radius:4px;padding:12px;background:#f9f9f9;font-size:12px">${h(au.notes)}</div>`:''}
+    <div class="print-sig-row">
+      <div class="print-sig-box"><div class="print-sig-label">Auditor Signature</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+      <div class="print-sig-box"><div class="print-sig-label">IT Manager Approval</div><div style="height:50px"></div><div class="print-sig-label">Name & Date</div></div>
+    </div>
+  </div>`;
+  showPrint('AUDIT VERIFICATION REPORT',html);
+}
+
+function printSingleLabel(id){
+  const a=DB.find(x=>x.assetId===id);if(!a)return;
+  const barPattern=genBarcode(a.assetId);
+  const html=`<div class="print-doc" style="max-width:400px">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Asset Label</div></div>
+      <div class="print-doc-meta"><div>${new Date().toLocaleDateString('en-IN')}</div></div>
+    </div>
+    <div style="border:2px solid #000;border-radius:8px;padding:16px;margin:16px 0;font-family:monospace">
+      <div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:900;letter-spacing:2px">ASSETCORE</div>
+        <div style="background:#000;color:#fff;padding:2px 8px;font-size:9px;letter-spacing:1px;border-radius:3px">${h(a.type||'ASSET')}</div>
+      </div>
+      <div style="font-size:22px;font-weight:900;color:#000;margin-bottom:4px">${h(a.assetId)}</div>
+      <div style="font-size:12px;color:#333;margin-bottom:10px">${h(a.empName||'Unassigned')} ${a.empId?'('+h(a.empId)+')':''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:#555;margin-bottom:10px">
+        ${a.serialNo?`<div>S/N: ${h(a.serialNo)}</div>`:''}
+        ${a.model?`<div>Model: ${h(a.model)}</div>`:''}
+        ${a.manufacturer?`<div>MFR: ${h(a.manufacturer)}</div>`:''}
+        ${a.ip?`<div>IP: ${h(a.ip)}</div>`:''}
+      </div>
+      <div style="display:flex;gap:2px;height:32px;align-items:flex-end;margin-bottom:4px">${barPattern}</div>
+      <div style="font-size:8px;letter-spacing:2px;color:#555">${h(a.assetId)}</div>
+    </div>
+  </div>`;
+  showPrint('ASSET LABEL',html);
+}
+
+function printAllLabels(){
+  const fs=document.getElementById('label-filter-status').value;
+  const filtered=DB.filter(a=>!fs||a.status===fs);
+  if(!filtered.length){toast('No assets to print','t-error');return}
+  const html=`<div class="print-doc" style="max-width:none">
+    <div class="print-doc-header">
+      <div><div class="print-company">ASSETCORE</div><div class="print-doc-title">Asset Labels — Batch Print</div></div>
+      <div class="print-doc-meta"><div>${filtered.length} labels · ${new Date().toLocaleDateString('en-IN')}</div></div>
+    </div>
+    <div class="label-print-sheet">
+      ${filtered.map(a=>`
+        <div class="label-print-item">
+          <div style="font-size:11px;font-weight:900;border-bottom:1px solid #000;padding-bottom:4px;margin-bottom:6px">ASSETCORE — ${h(a.type||'ASSET')}</div>
+          <div style="font-size:13px;font-weight:900">${h(a.assetId)}</div>
+          <div style="font-size:9px;color:#333;margin-bottom:4px">${h(a.empName||'Unassigned')}</div>
+          ${a.serialNo?`<div style="font-size:8px;color:#555">S/N: ${h(a.serialNo)}</div>`:''}
+          ${a.model?`<div style="font-size:8px;color:#555">Model: ${h(a.model)}</div>`:''}
+          ${a.ip?`<div style="font-size:8px;color:#555">IP: ${h(a.ip)}</div>`:''}
+          <div style="display:flex;gap:1px;height:20px;align-items:flex-end;margin:6px 0 2px">${genBarcode(a.assetId)}</div>
+          <div style="font-size:7px;letter-spacing:1px;color:#555">${h(a.assetId)}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+  showPrint(`ALL ASSET LABELS (${filtered.length})`,html);
+}
+
+function showPrint(title,html){
+  document.getElementById('print-modal-title').textContent=title;
+  document.getElementById('print-preview-content').innerHTML=html;
+  currentPrintHTML=html;
+  openModal('modal-print');
+}
+
+function doPrint(){
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><title>AssetCore Print</title><style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px}.print-doc{background:#fff;max-width:794px;margin:0 auto;padding:40px 50px;box-shadow:0 4px 20px rgba(0,0,0,0.2);color:#000;font-size:12px}.print-doc-header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #000;padding-bottom:16px;margin-bottom:20px}.print-company{font-size:20px;font-weight:900;letter-spacing:2px}.print-doc-title{font-size:14px;font-weight:700;color:#333;margin-top:4px}.print-doc-meta{text-align:right;font-size:11px;color:#555}.print-doc-meta div{margin-bottom:3px}.print-section-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#333;border-bottom:1px solid #ccc;padding-bottom:6px;margin:16px 0 10px}.print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;margin-bottom:12px}.print-field{border-bottom:1px solid #ddd;padding:4px 0}.print-field-k{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:3px}.print-field-v{font-size:12px;color:#000;font-weight:500}.print-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}.print-table th{background:#f0f0f0;padding:8px 10px;text-align:left;border:1px solid #ddd;font-size:10px;letter-spacing:1px;text-transform:uppercase}.print-table td{padding:8px 10px;border:1px solid #ddd}.print-sig-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px}.print-sig-box{border-top:1px solid #000;padding-top:8px}.print-sig-label{font-size:10px;color:#555;letter-spacing:1px;text-transform:uppercase}.print-status-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700}.ps-active{background:#d4edda;color:#155724}.ps-inactive{background:#f8d7da;color:#721c24}.ps-maintenance{background:#fff3cd;color:#856404}.ps-retired{background:#e2e3e5;color:#495057}.ps-open{background:#f8d7da;color:#721c24}.ps-progress{background:#fff3cd;color:#856404}.ps-closed{background:#d4edda;color:#155724}.ps-pending{background:#cce5ff;color:#004085}.print-checklist-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.print-checkbox{width:14px;height:14px;border:1px solid #999;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}.print-checkbox.checked{background:#155724;border-color:#155724;color:#fff}.label-print-sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.label-print-item{border:1px solid #ccc;border-radius:4px;padding:10px;font-family:monospace;font-size:10px}@media print{body{background:#fff;padding:0}.print-doc{box-shadow:none;padding:20px}}
+  </style></head><body>${currentPrintHTML}<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── IMPORT / EXPORT ────────────────────────────────────────────────────────
+function exportCSV(){
+  const data=getFiltered();if(!data.length){toast('No assets to export','t-error');return}
+  const rows=[CSV_HEADERS.join(',')];
+  data.forEach(a=>{rows.push(FIELDS.map(f=>`"${String(a[f.key]||'').replace(/"/g,'""')}"`).join(','))});
+  const blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`assetcore_${today()}.csv`;a.click();URL.revokeObjectURL(url);
+  toast(`Exported ${data.length} records`,'t-success');
+}
+function openImport(){csvRows=[];document.getElementById('csv-file').value='';const prev=document.getElementById('import-preview');prev.innerHTML='';prev.classList.remove('show');document.getElementById('import-confirm-btn').style.display='none';openModal('modal-import')}
+function readCSV(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const lines=ev.target.result.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){toast('No data rows found','t-error');return}
+    csvRows=[];
+    for(let i=1;i<lines.length;i++){
+      const vals=parseCSVLine(lines[i]);
+      const obj={};FIELDS.forEach((f,idx)=>{obj[f.key]=(vals[idx]||'').trim()});
+      if(obj.assetId)csvRows.push(obj);
+    }
+        const prev=document.getElementById('import-preview');
+    prev.innerHTML=`<div class="import-preview-text">✅ <strong>${csvRows.length}</strong> valid records found in <em>${h(file.name)}</em>.</div><button type="button" class="btn btn-danger btn-sm" onclick="clearImportFile()">Remove File</button>`;
+    prev.classList.add('show');
+    document.getElementById('import-confirm-btn').style.display='inline-flex';
+  };reader.readAsText(file);
+}
+function clearImportFile(){
+  csvRows=[];
+  document.getElementById('csv-file').value='';
+  const prev=document.getElementById('import-preview');
+  prev.innerHTML='';
+  prev.classList.remove('show');
+  document.getElementById('import-confirm-btn').style.display='none';
+}
+function doImport(){
+  let added=0,skipped=0;
+  csvRows.forEach(row=>{if(!row.assetId){skipped++;return}if(DB.find(a=>a.assetId===row.assetId)){skipped++;return}DB.push(row);added++});
+  persist();closeModal('modal-import');render();
+  toast(`Imported ${added} assets${skipped?`, ${skipped} skipped`:''}`,'t-success');
+}
+function parseCSVLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++}else{inQ=!inQ}}else if(c===','&&!inQ){result.push(cur);cur=''}else{cur+=c}}
+  result.push(cur);return result;
+}
+const dropZone=document.getElementById('drop-zone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)readCSV({target:{files:[f]}})});
+
+// ── MODAL UTILS ────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow=''}
+document.querySelectorAll('.overlay').forEach(ov=>{ov.addEventListener('click',e=>{if(e.target===ov)closeModal(ov.id)})});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){['modal-form','modal-detail','modal-import','modal-mlog','modal-handover','modal-audit','modal-print'].forEach(closeModal);closeConfirm(false)}});
+
+// ── CONFIRM ────────────────────────────────────────────────────────────────
+function confirm2(msg,sub,cb){document.getElementById('conf-msg').textContent=msg;document.getElementById('conf-sub').textContent=sub||'';confirmCb=cb;document.getElementById('confirm-box').classList.add('open')}
+function closeConfirm(ok){document.getElementById('confirm-box').classList.remove('open');if(ok&&typeof confirmCb==='function')confirmCb();confirmCb=null}
+document.getElementById('confirm-box').addEventListener('click',e=>{if(e.target===document.getElementById('confirm-box'))closeConfirm(false)});
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg,type='t-info'){
+  const root=document.getElementById('toast-root');const el=document.createElement('div');
+  const icons={'t-success':'✓','t-error':'✕','t-info':'ℹ','t-warn':'⚠'};
+  el.className=`toast ${type}`;el.innerHTML=`<span class="toast-icon">${icons[type]||'•'}</span>${h(msg)}`;
+  root.appendChild(el);
+  setTimeout(()=>{el.style.animation='toastOut 0.25s ease forwards';setTimeout(()=>el.remove(),260)},3500);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>

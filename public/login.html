@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetCore - Login</title>
+<style>
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --text: #0f172a;
+  --text-dim: #475569;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --success: #10b981;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+.login-container {
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  animation: slideUp 0.5s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.login-header {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  padding: 40px 30px;
+  text-align: center;
+  color: white;
+}
+.logo {
+  width: 60px;
+  height: 60px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+}
+.logo svg { width: 32px; height: 32px; }
+.login-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.login-header p {
+  font-size: 13px;
+  opacity: 0.9;
+}
+.login-body {
+  padding: 40px 30px;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.input-wrap {
+  position: relative;
+}
+.input-wrap svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-dim);
+}
+.form-input {
+  width: 100%;
+  padding: 14px 14px 14px 45px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+}
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+.remember-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  font-size: 13px;
+}
+.remember-wrap label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.forgot-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.forgot-link:hover { text-decoration: underline; }
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+}
+.login-btn:active { transform: translateY(0); }
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+.error-msg {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 20px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+.error-msg.show { display: flex; }
+.error-msg svg { width: 18px; height: 18px; flex-shrink: 0; }
+.login-footer {
+  text-align: center;
+  padding: 20px 30px 30px;
+  border-top: 1px solid var(--border);
+}
+.login-footer p {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.default-creds {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 15px;
+  text-align: center;
+}
+.default-creds p {
+  font-size: 12px;
+  color: #92400e;
+  margin-bottom: 5px;
+}
+.default-creds strong {
+  font-size: 13px;
+  font-family: monospace;
+}
+.toggle-pass {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 5px;
+}
+.toggle-pass:hover { color: var(--text); }
+.toggle-pass svg { width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+<div class="login-container">
+  <div class="login-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+      </svg>
+    </div>
+    <h1>AssetCore</h1>
+    <p>Asset Maintenance Management System</p>
+  </div>
+  
+  <div class="login-body">
+    <div class="error-msg" id="error-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="error-text">Invalid credentials</span>
+    </div>
+    
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <input type="text" class="form-input" id="username" placeholder="Enter username" required autocomplete="username">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input type="password" class="form-input" id="password" placeholder="Enter password" required autocomplete="current-password">
+          <button type="button" class="toggle-pass" onclick="togglePassword()">
+            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div class="remember-wrap">
+        <label>
+          <input type="checkbox" id="remember" style="width:16px;height:16px;accent-color:var(--accent)">
+          Remember me
+        </label>
+      </div>
+      
+      <button type="submit" class="login-btn" id="login-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Sign In
+      </button>
+    </form>
+    
+    <div class="default-creds">
+      <p>Default Credentials:</p>
+      <strong>admin / admin123</strong>
+    </div>
+  </div>
+  
+  <div class="login-footer">
+    <p>Secured with session authentication</p>
+  </div>
+</div>
+
+<script>
+function togglePassword() {
+  const pass = document.getElementById('password');
+  const icon = document.getElementById('eye-icon');
+  if (pass.type === 'password') {
+    pass.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    pass.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  document.getElementById('error-text').textContent = msg;
+  el.classList.add('show');
+}
+
+function hideError() {
+  document.getElementById('error-msg').classList.remove('show');
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  hideError();
+  
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Signing in...';
+  
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok && data.status === 'success') {
+      if (document.getElementById('remember').checked) {
+        localStorage.setItem('assetcore_user', username);
+      }
+      window.location.href = '/';
+    } else {
+      showError(data.error || 'Login failed');
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+    }
+  } catch (err) {
+    showError('Connection error. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+  }
+}
+
+// Check if already logged in
+(async function() {
+  try {
+    const res = await fetch('/api/check-auth');
+    const data = await res.json();
+    if (data.authenticated) {
+      window.location.href = '/';
+    }
+  } catch(e) {}
+})();
+
+// Load remembered username
+const savedUser = localStorage.getItem('assetcore_user');
+if (savedUser) {
+  document.getElementById('username').value = savedUser;
+  document.getElementById('remember').checked = true;
+}
+</script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</body>
+</html>

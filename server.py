@@ -56,27 +56,34 @@ def init_location_db(location_code):
 def create_default_location():
     conn = sqlite3.connect(get_main_db())
     c = conn.cursor()
-    c.execute("SELECT code FROM locations WHERE code = 'HQ'")
-    if not c.fetchone():
-        c.execute("INSERT INTO locations (code, name, address) VALUES (?, ?, ?)",
-                 ('HQ', 'Headquarters', 'Main Office'))
-        c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
-                 ('HQ', 'admin', hash_password('admin123'), 'admin@hq.com', 'admin'))
-        conn.commit()
-        conn.close()
-        
-        init_location_db('HQ')
-        
-        loc_conn = sqlite3.connect(get_location_db('HQ'))
-        loc_c = loc_conn.cursor()
-        loc_c.execute("INSERT OR IGNORE INTO store (key, value) VALUES ('location_name', ?)",
-                     (json.dumps('Headquarters'),))
-        loc_conn.commit()
-        loc_conn.close()
-        
-        print("Default location 'HQ' created with admin/admin123")
-    else:
-        conn.close()
+    
+    locations_data = [
+        ('HQ', 'Headquarters', 'Main Office - Chennai'),
+        ('CHN', 'Chennai', 'Chennai Branch - Tamil Nadu'),
+        ('HSR', 'Hosur', 'Hosur Branch - Krishnagiri District'),
+    ]
+    
+    for code, name, address in locations_data:
+        c.execute("SELECT code FROM locations WHERE code = ?", (code,))
+        if not c.fetchone():
+            c.execute("INSERT INTO locations (code, name, address) VALUES (?, ?, ?)",
+                     (code, name, address))
+            c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
+                     (code, 'admin', hash_password('admin123'), f'admin@{code.lower()}.com', 'admin'))
+            conn.commit()
+            
+            init_location_db(code)
+            
+            loc_conn = sqlite3.connect(get_location_db(code))
+            loc_c = loc_conn.cursor()
+            loc_c.execute("INSERT OR IGNORE INTO store (key, value) VALUES ('location_name', ?)",
+                         (json.dumps(name),))
+            loc_conn.commit()
+            loc_conn.close()
+            
+            print(f"Location '{name}' ({code}) created - admin/admin123")
+    
+    conn.close()
 
 init_main_db()
 create_default_location()

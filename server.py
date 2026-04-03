@@ -3,221 +3,145 @@ import sqlite3
 import os
 import secrets
 import hashlib
-import smtplib
-import random
-import string
 from flask import Flask, request, send_from_directory, session, redirect, jsonify
-from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
 PORT = int(os.environ.get('PORT', 8000))
-DB_FILE = "database.sqlite"
-
-SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
-SMTP_EMAIL = os.environ.get('SMTP_EMAIL', '')
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
-FROM_NAME = os.environ.get('FROM_NAME', 'AssetCore')
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password_hash TEXT, email TEXT, role TEXT DEFAULT 'user', created_at TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS login_otp (email TEXT, otp TEXT, expires_at TEXT)")
-    conn.commit()
-    conn.close()
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def generate_otp(length=6):
-    return ''.join(random.choices(string.digits, k=length))
+def get_main_db():
+    return "main_database.sqlite"
 
-def send_email(to_email, subject, body):
-    try:
-        if not SMTP_EMAIL or not SMTP_PASSWORD:
-            print(f"\n{'='*50}")
-            print(f"EMAIL OTP (Dev Mode)")
-            print(f"{'='*50}")
-            print(f"To: {to_email}")
-            import re
-            otp_match = re.search(r'font-size: 32px;[^>]*>([^<]+)</span>', body)
-            if otp_match:
-                print(f"OTP: {otp_match.group(1)}")
-            print(f"{'='*50}\n")
-            return True
+def get_location_db(location_code):
+    safe_name = "".join(c for c in location_code if c.isalnum() or c in "_-")
+    return f"location_{safe_name}.sqlite"
+
+def init_main_db():
+    conn = sqlite3.connect(get_main_db())
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        address TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS location_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        location_code TEXT NOT NULL,
+        username TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        email TEXT,
+        role TEXT DEFAULT 'user',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(location_code, username)
+    )''')
+    conn.commit()
+    conn.close()
+
+def init_location_db(location_code):
+    db_path = get_location_db(location_code)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS location_info (key TEXT PRIMARY KEY, value TEXT)")
+    conn.commit()
+    conn.close()
+
+def create_default_location():
+    conn = sqlite3.connect(get_main_db())
+    c = conn.cursor()
+    c.execute("SELECT code FROM locations WHERE code = 'HQ'")
+    if not c.fetchone():
+        c.execute("INSERT INTO locations (code, name, address) VALUES (?, ?, ?)",
+                 ('HQ', 'Headquarters', 'Main Office'))
+        c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
+                 ('HQ', 'admin', hash_password('admin123'), 'admin@hq.com', 'admin'))
+        conn.commit()
+        conn.close()
         
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_EMAIL}>"
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
+        init_location_db('HQ')
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        return False
+        loc_conn = sqlite3.connect(get_location_db('HQ'))
+        loc_c = loc_conn.cursor()
+        loc_c.execute("INSERT OR IGNORE INTO store (key, value) VALUES ('location_name', ?)",
+                     (json.dumps('Headquarters'),))
+        loc_conn.commit()
+        loc_conn.close()
+        
+        print("Default location 'HQ' created with admin/admin123")
+    else:
+        conn.close()
+
+init_main_db()
+create_default_location()
 
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect('/login.html')
+    if 'location_code' not in session:
+        return redirect('/select-location.html')
     return send_from_directory('public', 'index.html')
 
 @app.route('/login.html')
 def login_page():
     if 'username' in session:
+        if 'location_code' not in session:
+            return send_from_directory('public', 'select-location.html')
         return redirect('/')
     return send_from_directory('public', 'login.html')
 
-@app.route('/api/request-otp', methods=['POST'])
-def request_otp():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    
-    if not email:
-        return jsonify({"error": "Email required"}), 400
-    
-    otp = generate_otp()
-    expires_at = (datetime.now() + timedelta(minutes=5)).isoformat()
-    
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM login_otp WHERE email = ?", (email,))
-    c.execute("INSERT INTO login_otp (email, otp, expires_at) VALUES (?, ?, ?)",
-              (email, hash_password(otp), expires_at))
-    conn.commit()
-    conn.close()
-    
-    subject = f"{FROM_NAME} - Login OTP Verification"
-    body = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 20px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">{FROM_NAME}</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb;">
-            <h2 style="color: #1f2937; margin-top: 0;">Your Login OTP</h2>
-            <p style="color: #6b7280; font-size: 14px;">Use this code to verify your login:</p>
-            <div style="background: #ffffff; border: 2px dashed #2563eb; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #2563eb;">{otp}</span>
-            </div>
-            <p style="color: #dc2626; font-size: 12px;">This code expires in 5 minutes. Do not share with anyone.</p>
-        </div>
-    </body>
-    </html>
-    """
-    
-    success = send_email(email, subject, body)
-    
-    return jsonify({
-        "status": "success" if success else "simulated",
-        "message": "OTP sent to your email" if success else f"OTP (dev mode): {otp}",
-        "email": email[:3] + "***" + email[email.index('@')-2:] if '@' in email else email
-    })
+@app.route('/select-location.html')
+def select_location_page():
+    return send_from_directory('public', 'select-location.html')
 
-@app.route('/api/verify-otp', methods=['POST'])
-def verify_otp():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    otp = data.get('otp', '').strip()
-    
-    if not email or not otp:
-        return jsonify({"error": "Email and OTP required"}), 400
-    
-    conn = sqlite3.connect(DB_FILE)
+@app.route('/api/locations', methods=['GET'])
+def get_locations():
+    conn = sqlite3.connect(get_main_db())
     c = conn.cursor()
-    c.execute("SELECT otp, expires_at FROM login_otp WHERE email = ?", (email,))
-    row = c.fetchone()
+    c.execute("SELECT code, name, address FROM locations ORDER BY name")
+    locations = [{"code": r[0], "name": r[1], "address": r[2]} for r in c.fetchall()]
     conn.close()
-    
-    if not row:
-        return jsonify({"error": "No OTP requested for this email"}), 400
-    
-    stored_hash, expires_at = row
-    
-    if datetime.now() > datetime.fromisoformat(expires_at):
-        return jsonify({"error": "OTP has expired. Request a new one."}), 400
-    
-    if stored_hash != hash_password(otp):
-        return jsonify({"error": "Invalid OTP"}), 400
-    
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM login_otp WHERE email = ?", (email,))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"status": "success", "message": "OTP verified"})
+    return jsonify(locations)
 
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    login_type = data.get('type', 'password')
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+    location = data.get('location', '').strip().upper()
     
-    if login_type == 'otp':
-        email = data.get('email', '').strip().lower()
-        otp = data.get('otp', '').strip()
-        
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("SELECT username FROM users WHERE email = ?", (email,))
-        row = c.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({"error": "No account found with this email"}), 401
-        
-        username = row[0]
-        
-        c.execute("SELECT otp, expires_at FROM login_otp WHERE email = ?", (email,))
-        otp_row = c.fetchone()
-        
-        if not otp_row or otp_row[0] != hash_password(otp):
-            conn.close()
-            return jsonify({"error": "Invalid OTP"}), 401
-        
-        if datetime.now() > datetime.fromisoformat(otp_row[1]):
-            conn.close()
-            return jsonify({"error": "OTP expired"}), 401
-        
-        c.execute("DELETE FROM login_otp WHERE email = ?", (email,))
-        conn.commit()
-        conn.close()
-        
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+    
+    conn = sqlite3.connect(get_main_db())
+    c = conn.cursor()
+    c.execute("SELECT password_hash, role FROM location_users WHERE username = ? AND location_code = ?",
+              (username, location))
+    row = c.fetchone()
+    conn.close()
+    
+    if row and row[0] == hash_password(password):
         session['username'] = username
-        session['email'] = email
-        return jsonify({"status": "success", "username": username, "method": "otp"})
+        session['location_code'] = location
+        session['role'] = row[1]
+        
+        loc_conn = sqlite3.connect(get_location_db(location))
+        loc_c = loc_conn.cursor()
+        loc_c.execute("SELECT value FROM store WHERE key = 'location_name'")
+        name_row = loc_c.fetchone()
+        session['location_name'] = json.loads(name_row[0]) if name_row else location
+        loc_conn.close()
+        
+        return jsonify({"status": "success", "username": username, "location": location})
     
-    else:
-        username = data.get('username', '').strip()
-        password = data.get('password', '')
-        
-        if not username or not password:
-            return jsonify({"error": "Username and password required"}), 400
-        
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("SELECT password_hash, email FROM users WHERE username = ?", (username,))
-        row = c.fetchone()
-        conn.close()
-        
-        if row and row[0] == hash_password(password):
-            session['username'] = username
-            session['email'] = row[1]
-            return jsonify({"status": "success", "username": username, "method": "password"})
-        
-        return jsonify({"error": "Invalid credentials"}), 401
+    return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -230,7 +154,9 @@ def check_auth():
         return jsonify({
             "authenticated": True, 
             "username": session['username'],
-            "email": session.get('email', '')
+            "location": session.get('location_code', ''),
+            "location_name": session.get('location_name', ''),
+            "role": session.get('role', 'user')
         })
     return jsonify({"authenticated": False})
 
@@ -246,17 +172,18 @@ def change_password():
     if not current or not new_pass:
         return jsonify({"error": "All fields required"}), 400
     
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(get_main_db())
     c = conn.cursor()
-    c.execute("SELECT password_hash FROM users WHERE username = ?", (session['username'],))
+    c.execute("SELECT password_hash FROM location_users WHERE username = ? AND location_code = ?",
+              (session['username'], session['location_code']))
     row = c.fetchone()
     
     if not row or row[0] != hash_password(current):
         conn.close()
         return jsonify({"error": "Current password incorrect"}), 400
     
-    c.execute("UPDATE users SET password_hash = ? WHERE username = ?", 
-              (hash_password(new_pass), session['username']))
+    c.execute("UPDATE location_users SET password_hash = ? WHERE username = ? AND location_code = ?",
+              (hash_password(new_pass), session['username'], session['location_code']))
     conn.commit()
     conn.close()
     
@@ -264,15 +191,17 @@ def change_password():
 
 @app.route('/api/users', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_users():
-    if 'username' not in session:
-        return jsonify({"error": "Not authenticated"}), 401
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({"error": "Admin access required"}), 403
     
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(get_main_db())
     c = conn.cursor()
     
     if request.method == 'GET':
-        c.execute("SELECT username, email, role, created_at FROM users")
-        users = [{"username": u[0], "email": u[1], "role": u[2], "created_at": u[3]} for u in c.fetchall()]
+        c.execute("SELECT id, username, email, role, created_at FROM location_users WHERE location_code = ?",
+                  (session['location_code'],))
+        users = [{"id": r[0], "username": r[1], "email": r[2], "role": r[3], "created_at": r[4]} 
+                 for r in c.fetchall()]
         conn.close()
         return jsonify(users)
     
@@ -280,71 +209,121 @@ def manage_users():
         data = request.get_json()
         username = data.get('username', '').strip()
         password = data.get('password', '')
-        email = data.get('email', '').strip().lower()
+        email = data.get('email', '').strip()
         role = data.get('role', 'user')
         
-        if not username or not password or not email:
+        if not username or not password:
             conn.close()
-            return jsonify({"error": "All fields required"}), 400
+            return jsonify({"error": "Username and password required"}), 400
         
-        c.execute("SELECT username FROM users WHERE username = ? OR email = ?", (username, email))
+        c.execute("SELECT id FROM location_users WHERE username = ? AND location_code = ?",
+                  (username, session['location_code']))
         if c.fetchone():
             conn.close()
             return jsonify({"error": "User already exists"}), 400
         
-        c.execute("INSERT INTO users (username, password_hash, email, role, created_at) VALUES (?, ?, ?, ?, ?)",
-                  (username, hash_password(password), email, role, datetime.now().isoformat()))
+        c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
+                 (session['location_code'], username, hash_password(password), email, role))
         conn.commit()
         conn.close()
         return jsonify({"status": "success"})
     
     if request.method == 'PUT':
         data = request.get_json()
-        username = data.get('username', '')
+        user_id = data.get('id')
         new_password = data.get('newPassword', '')
-        
-        if session['username'] != 'admin' and session['username'] != username:
-            conn.close()
-            return jsonify({"error": "Unauthorized"}), 403
+        new_role = data.get('role')
         
         if new_password:
-            c.execute("UPDATE users SET password_hash = ? WHERE username = ?", 
-                      (hash_password(new_password), username))
+            c.execute("UPDATE location_users SET password_hash = ? WHERE id = ? AND location_code = ?",
+                     (hash_password(new_password), user_id, session['location_code']))
         
-        if 'role' in data and session['username'] == 'admin':
-            c.execute("UPDATE users SET role = ? WHERE username = ?", 
-                      (data['role'], username))
-        
-        if 'email' in data:
-            c.execute("UPDATE users SET email = ? WHERE username = ?", 
-                      (data['email'], username))
+        if new_role:
+            c.execute("UPDATE location_users SET role = ? WHERE id = ? AND location_code = ?",
+                     (new_role, user_id, session['location_code']))
         
         conn.commit()
         conn.close()
         return jsonify({"status": "success"})
     
     if request.method == 'DELETE':
-        username = request.args.get('username')
-        
-        if session['username'] != 'admin':
-            conn.close()
-            return jsonify({"error": "Only admin can delete users"}), 403
-        
-        if username == 'admin':
-            conn.close()
-            return jsonify({"error": "Cannot delete admin"}), 400
-        
-        c.execute("DELETE FROM users WHERE username = ?", (username,))
+        user_id = request.args.get('id')
+        c.execute("DELETE FROM location_users WHERE id = ? AND location_code = ? AND role != 'admin'",
+                 (user_id, session['location_code']))
         conn.commit()
         conn.close()
         return jsonify({"status": "success"})
 
+@app.route('/api/all-locations', methods=['GET', 'POST', 'DELETE'])
+def manage_locations():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({"error": "Admin access required"}), 403
+    
+    conn = sqlite3.connect(get_main_db())
+    c = conn.cursor()
+    
+    if request.method == 'GET':
+        c.execute("SELECT code, name, address, created_at FROM locations ORDER BY name")
+        locations = [{"code": r[0], "name": r[1], "address": r[2], "created_at": r[3]} for r in c.fetchall()]
+        conn.close()
+        return jsonify(locations)
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        code = data.get('code', '').strip().upper()
+        name = data.get('name', '').strip()
+        address = data.get('address', '').strip()
+        
+        if not code or not name:
+            conn.close()
+            return jsonify({"error": "Code and name required"}), 400
+        
+        c.execute("SELECT id FROM locations WHERE code = ?", (code,))
+        if c.fetchone():
+            conn.close()
+            return jsonify({"error": "Location code already exists"}), 400
+        
+        c.execute("INSERT INTO locations (code, name, address) VALUES (?, ?, ?)", (code, name, address))
+        conn.commit()
+        conn.close()
+        
+        init_location_db(code)
+        
+        loc_conn = sqlite3.connect(get_location_db(code))
+        loc_c = loc_conn.cursor()
+        loc_c.execute("INSERT INTO store (key, value) VALUES ('location_name', ?)",
+                     (json.dumps(name),))
+        loc_c.execute("INSERT INTO location_users (location_code, username, password_hash, email, role) VALUES (?, ?, ?, ?, ?)",
+                     (code, 'admin', hash_password('admin123'), f'admin@{code.lower()}.com', 'admin'))
+        loc_conn.commit()
+        loc_conn.close()
+        
+        return jsonify({"status": "success", "code": code})
+    
+    if request.method == 'DELETE':
+        code = request.args.get('code')
+        if code == 'HQ':
+            conn.close()
+            return jsonify({"error": "Cannot delete default HQ location"}), 400
+        
+        c.execute("DELETE FROM locations WHERE code = ?", (code,))
+        c.execute("DELETE FROM location_users WHERE location_code = ?", (code,))
+        conn.commit()
+        conn.close()
+        
+        try:
+            os.remove(get_location_db(code))
+        except:
+            pass
+        
+        return jsonify({"status": "success"})
+
 @app.route('/api/load')
 def load_data():
-    if 'username' not in session:
+    if 'username' not in session or 'location_code' not in session:
         return jsonify({"error": "Not authenticated"}), 401
     
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(get_location_db(session['location_code']))
     c = conn.cursor()
     c.execute("SELECT key, value FROM store")
     rows = c.fetchall()
@@ -354,12 +333,12 @@ def load_data():
 
 @app.route('/api/save', methods=['POST'])
 def save_data():
-    if 'username' not in session:
+    if 'username' not in session or 'location_code' not in session:
         return jsonify({"error": "Not authenticated"}), 401
     
     try:
         data = request.get_json()
-        conn = sqlite3.connect(DB_FILE)
+        conn = sqlite3.connect(get_location_db(session['location_code']))
         c = conn.cursor()
         for key, value in data.items():
             c.execute("INSERT OR REPLACE INTO store (key, value) VALUES (?, ?)", 
@@ -373,26 +352,20 @@ def save_data():
 @app.route('/<path:path>')
 def serve_static(path):
     if 'username' not in session:
-        return redirect('/login.html')
+        if path not in ['login.html', 'select-location.html']:
+            return redirect('/login.html')
     return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    init_db()
     print(f"==================================================")
-    print(f" AssetCore Server running correctly!")
-    print(f" SQLite Database connected: {DB_FILE}")
+    print(f" AssetCore Multi-Location Server")
+    print(f" SQLite Database System")
     print(f"")
-    print(f" -> Open your browser at: http://localhost:{PORT}")
+    print(f" -> Open browser at: http://localhost:{PORT}")
     print(f"")
-    print(f" LOGIN CREDENTIALS:")
-    print(f" ----------------------------------")
-    print(f" ADMIN   | admin      | admin123")
-    print(f" USER    | user1      | user123")
-    print(f" USER    | user2      | user123")
-    print(f" USER    | manager    | manager123")
-    print(f" USER    | technician | tech123")
-    print(f" ----------------------------------")
-    print(f"")
-    print(f" Email OTP: Set SMTP_EMAIL & SMTP_PASSWORD env vars")
+    print(f" DEFAULT CREDENTIALS PER LOCATION:")
+    print(f" ----------------------------------------")
+    print(f" HQ (Headquarters)  | admin / admin123")
+    print(f" ----------------------------------------")
     print(f"==================================================")
     app.run(host='0.0.0.0', port=PORT)

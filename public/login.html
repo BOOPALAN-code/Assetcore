@@ -6,13 +6,12 @@
 <title>AssetCore - Login</title>
 <style>
 :root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --text: #0f172a;
   --text-dim: #475569;
   --border: #e2e8f0;
+  --surface: #ffffff;
   --danger: #ef4444;
   --success: #10b981;
 }
@@ -26,12 +25,12 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
-.login-container {
+.container {
   background: var(--surface);
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   overflow: hidden;
   animation: slideUp 0.5s ease;
 }
@@ -39,7 +38,7 @@ body {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.login-header {
+.header {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   padding: 40px 30px;
   text-align: center;
@@ -56,51 +55,10 @@ body {
   margin: 0 auto 15px;
 }
 .logo svg { width: 32px; height: 32px; }
-.login-header h1 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 5px;
-}
-.login-header p {
-  font-size: 13px;
-  opacity: 0.9;
-}
-.login-body { padding: 35px 30px; }
-
-/* Tabs */
-.login-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 25px;
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 4px;
-}
-.login-tab {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  background: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-.login-tab.active {
-  background: white;
-  color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.login-panel { display: none; }
-.login-panel.active { display: block; }
-
-/* Form */
-.form-group {
-  margin-bottom: 18px;
-}
+.header h1 { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
+.header p { font-size: 13px; opacity: 0.9; }
+.body { padding: 35px 30px; }
+.form-group { margin-bottom: 18px; }
 .form-group label {
   display: block;
   font-size: 13px;
@@ -108,9 +66,7 @@ body {
   color: var(--text);
   margin-bottom: 8px;
 }
-.input-wrap {
-  position: relative;
-}
+.input-wrap { position: relative; }
 .input-wrap svg {
   position: absolute;
   left: 14px;
@@ -133,61 +89,10 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
-.form-input:disabled {
-  background: var(--bg);
-  color: var(--text-dim);
-}
-.toggle-pass {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
+select.form-input {
+  padding-left: 45px;
   cursor: pointer;
-  color: var(--text-dim);
-  padding: 5px;
 }
-.toggle-pass:hover { color: var(--text); }
-.toggle-pass svg { width: 18px; height: 18px; }
-
-/* OTP Section */
-.otp-section {
-  display: none;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 18px;
-}
-.otp-section.show { display: block; }
-.otp-section h4 {
-  color: #92400e;
-  font-size: 13px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.otp-inputs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.otp-input {
-  flex: 1;
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  padding: 12px;
-  border: 2px solid #f59e0b;
-  border-radius: 8px;
-  outline: none;
-  letter-spacing: 4px;
-}
-.otp-input:focus { border-color: var(--accent); }
-
-/* Buttons */
 .login-btn {
   width: 100%;
   padding: 14px;
@@ -199,36 +104,12 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 .login-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
 }
-.login-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-.otp-btn {
-  width: 100%;
-  padding: 12px;
-  background: #f59e0b;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.otp-btn:hover { background: #d97706; }
-.otp-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* Error */
+.login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .error-msg {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -238,36 +119,12 @@ body {
   font-size: 13px;
   margin-bottom: 18px;
   display: none;
-  align-items: center;
-  gap: 10px;
 }
-.error-msg.show { display: flex; }
-.error-msg svg { width: 18px; height: 18px; flex-shrink: 0; }
-
-/* Success */
-.success-msg {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: var(--success);
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 18px;
-  display: none;
-  align-items: center;
-  gap: 10px;
-}
-.success-msg.show { display: flex; }
-
-/* Footer */
-.login-footer {
+.error-msg.show { display: block; }
+.footer {
   text-align: center;
   padding: 20px 30px 25px;
   border-top: 1px solid var(--border);
-}
-.login-footer p {
-  font-size: 12px;
-  color: var(--text-dim);
 }
 .default-creds {
   background: #fef3c7;
@@ -276,27 +133,13 @@ body {
   padding: 12px 15px;
   margin-top: 12px;
 }
-.default-creds p {
-  font-size: 11px;
-  color: #92400e;
-  margin-bottom: 4px;
-}
-.default-creds strong {
-  font-size: 12px;
-  font-family: monospace;
-}
-.resend-link {
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: underline;
-  font-size: 12px;
-}
-.resend-link:hover { color: var(--accent-dark); }
+.default-creds p { font-size: 11px; color: #92400e; margin-bottom: 4px; }
+.default-creds strong { font-size: 12px; font-family: monospace; }
 </style>
 </head>
 <body>
-<div class="login-container">
-  <div class="login-header">
+<div class="container">
+  <div class="header">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="2" y="3" width="20" height="14" rx="2"/>
@@ -307,111 +150,51 @@ body {
     <p>Asset Maintenance Management System</p>
   </div>
   
-  <div class="login-body">
+  <div class="body">
     <div class="error-msg" id="error-msg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
       <span id="error-text">Invalid credentials</span>
     </div>
     
-    <div class="success-msg" id="success-msg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-        <polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>
-      <span id="success-text"></span>
-    </div>
-    
-    <div class="login-tabs">
-      <button class="login-tab active" onclick="switchTab('password')">Password Login</button>
-      <button class="login-tab" onclick="switchTab('otp')">Email OTP</button>
-    </div>
-    
-    <!-- Password Login Panel -->
-    <div class="login-panel active" id="panel-password">
-      <form onsubmit="handlePasswordLogin(event)">
-        <div class="form-group">
-          <label>Username</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            <input type="text" class="form-input" id="username" placeholder="Enter username" required autocomplete="username">
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label>Password</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <input type="password" class="form-input" id="password" placeholder="Enter password" required autocomplete="current-password">
-            <button type="button" class="toggle-pass" onclick="togglePassword()">
-              <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <button type="submit" class="login-btn" id="login-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-            <polyline points="10 17 15 12 10 7"/>
-            <line x1="15" y1="12" x2="3" y2="12"/>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Location / Branch</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
           </svg>
-          Sign In
-        </button>
-      </form>
-    </div>
-    
-    <!-- OTP Login Panel -->
-    <div class="login-panel" id="panel-otp">
-      <div class="otp-section" id="otp-section">
-        <h4>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
-          </svg>
-          OTP sent! Enter code below
-        </h4>
-        <div class="otp-inputs">
-          <input type="text" class="otp-input" id="otp1" maxlength="1" oninput="otpInput(this, 'otp2')" onkeydown="otpKeydown(event, 'otp1', null)">
-          <input type="text" class="otp-input" id="otp2" maxlength="1" oninput="otpInput(this, 'otp3')" onkeydown="otpKeydown(event, 'otp2', 'otp1')">
-          <input type="text" class="otp-input" id="otp3" maxlength="1" oninput="otpInput(this, 'otp4')" onkeydown="otpKeydown(event, 'otp3', 'otp2')">
-          <input type="text" class="otp-input" id="otp4" maxlength="1" oninput="otpInput(this, 'otp5')" onkeydown="otpKeydown(event, 'otp4', 'otp3')">
-          <input type="text" class="otp-input" id="otp5" maxlength="1" oninput="otpInput(this, 'otp6')" onkeydown="otpKeydown(event, 'otp5', 'otp4')">
-          <input type="text" class="otp-input" id="otp6" maxlength="1" oninput="handleOtpComplete()" onkeydown="otpKeydown(event, 'otp6', 'otp5')">
+          <select class="form-input" id="location" required>
+            <option value="">Select Location...</option>
+          </select>
         </div>
-        <button type="button" class="otp-btn" id="verify-btn" onclick="verifyOtp()" disabled>Verify OTP</button>
-        <p style="font-size:11px;color:#92400e;margin-top:8px;text-align:center">
-          Resend in <span id="countdown">60</span>s | <span class="resend-link" id="resend-btn" style="display:none" onclick="requestOtp()">Resend OTP</span>
-        </p>
       </div>
       
-      <div id="otp-form">
-        <div class="form-group">
-          <label>Email Address</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <input type="email" class="form-input" id="otp-email" placeholder="Enter registered email">
-          </div>
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <input type="text" class="form-input" id="username" placeholder="Enter username" required autocomplete="username">
         </div>
-        
-        <button type="button" class="otp-btn" id="request-otp-btn" onclick="requestOtp()">
-          Send OTP to Email
-        </button>
       </div>
-    </div>
+      
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input type="password" class="form-input" id="password" placeholder="Enter password" required autocomplete="current-password">
+        </div>
+      </div>
+      
+      <button type="submit" class="login-btn" id="login-btn">
+        Sign In
+      </button>
+    </form>
     
     <div class="default-creds">
       <p>Default Credentials:</p>
@@ -419,38 +202,25 @@ body {
     </div>
   </div>
   
-  <div class="login-footer">
-    <p>Secured with session authentication & Email OTP</p>
+  <div class="footer">
+    <p>Multi-Location Asset Management System</p>
   </div>
 </div>
 
 <script>
-let otpEmail = '';
-let countdownTimer = null;
-
-function switchTab(tab) {
-  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.login-panel').forEach(p => p.classList.remove('active'));
-  if (tab === 'password') {
-    document.querySelector('.login-tab').classList.add('active');
-    document.getElementById('panel-password').classList.add('active');
-  } else {
-    document.querySelectorAll('.login-tab')[1].classList.add('active');
-    document.getElementById('panel-otp').classList.add('active');
-  }
-  hideError();
-  hideSuccess();
-}
-
-function togglePassword() {
-  const pass = document.getElementById('password');
-  const icon = document.getElementById('eye-icon');
-  if (pass.type === 'password') {
-    pass.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  } else {
-    pass.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+async function loadLocations() {
+  try {
+    const res = await fetch('/api/locations');
+    const locations = await res.json();
+    const select = document.getElementById('location');
+    locations.forEach(loc => {
+      const option = document.createElement('option');
+      option.value = loc.code;
+      option.textContent = `${loc.name} (${loc.code})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -464,32 +234,30 @@ function hideError() {
   document.getElementById('error-msg').classList.remove('show');
 }
 
-function showSuccess(msg) {
-  const el = document.getElementById('success-msg');
-  document.getElementById('success-text').textContent = msg;
-  el.classList.add('show');
-}
-
-function hideSuccess() {
-  document.getElementById('success-msg').classList.remove('show');
-}
-
-async function handlePasswordLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   hideError();
   
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
-  btn.innerHTML = 'Signing in...';
+  btn.textContent = 'Signing in...';
   
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
+  const location = document.getElementById('location').value;
+  
+  if (!location) {
+    showError('Please select a location');
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    return;
+  }
   
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'password', username, password })
+      body: JSON.stringify({ username, password, location })
     });
     
     const data = await res.json();
@@ -499,168 +267,15 @@ async function handlePasswordLogin(e) {
     } else {
       showError(data.error || 'Login failed');
       btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+      btn.textContent = 'Sign In';
     }
   } catch (err) {
     showError('Connection error. Please try again.');
     btn.disabled = false;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+    btn.textContent = 'Sign In';
   }
 }
 
-async function requestOtp() {
-  const email = document.getElementById('otp-email').value.trim().toLowerCase();
-  
-  if (!email) {
-    showError('Please enter email address');
-    return;
-  }
-  
-  if (!email.includes('@')) {
-    showError('Please enter a valid email');
-    return;
-  }
-  
-  hideError();
-  const btn = document.getElementById('request-otp-btn');
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-  
-  try {
-    const res = await fetch('/api/request-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    
-    const data = await res.json();
-    
-    if (res.ok && (data.status === 'success' || data.status === 'simulated')) {
-      otpEmail = email;
-      document.getElementById('otp-form').style.display = 'none';
-      document.getElementById('otp-section').classList.add('show');
-      showSuccess(data.message || 'OTP sent to your email');
-      startCountdown();
-    } else {
-      showError(data.error || 'Failed to send OTP');
-    }
-  } catch (err) {
-    showError('Connection error. Please try again.');
-  }
-  
-  btn.disabled = false;
-  btn.textContent = 'Send OTP to Email';
-}
-
-function otpInput(current, nextId) {
-  const value = current.value.replace(/[^0-9]/g, '');
-  current.value = value;
-  if (value && nextId) {
-    document.getElementById(nextId).focus();
-  }
-  updateVerifyBtn();
-}
-
-function otpKeydown(event, currentId, prevId) {
-  if (event.key === 'Backspace' && !event.target.value && prevId) {
-    document.getElementById(prevId).focus();
-  }
-}
-
-function getOtp() {
-  let otp = '';
-  for (let i = 1; i <= 6; i++) {
-    otp += document.getElementById('otp' + i).value;
-  }
-  return otp;
-}
-
-function updateVerifyBtn() {
-  const otp = getOtp();
-  document.getElementById('verify-btn').disabled = otp.length !== 6;
-}
-
-function handleOtpComplete() {
-  otpInput(document.getElementById('otp6'), null);
-  if (getOtp().length === 6) {
-    verifyOtp();
-  }
-}
-
-async function verifyOtp() {
-  const otp = getOtp();
-  
-  if (otp.length !== 6) {
-    showError('Please enter complete OTP');
-    return;
-  }
-  
-  hideError();
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = true;
-  btn.textContent = 'Verifying...';
-  
-  try {
-    const res = await fetch('/api/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: otpEmail, otp })
-    });
-    
-    const data = await res.json();
-    
-    if (res.ok && data.status === 'success') {
-      // Now do actual login
-      const loginRes = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'otp', email: otpEmail, otp })
-      });
-      
-      const loginData = await loginRes.json();
-      
-      if (loginRes.ok && loginData.status === 'success') {
-        window.location.href = '/';
-      } else {
-        showError(loginData.error || 'Login failed');
-      }
-    } else {
-      showError(data.error || 'Invalid OTP');
-    }
-  } catch (err) {
-    showError('Connection error. Please try again.');
-  }
-  
-  btn.disabled = false;
-  btn.textContent = 'Verify OTP';
-}
-
-function startCountdown() {
-  let seconds = 60;
-  const countdownEl = document.getElementById('countdown');
-  const resendBtn = document.getElementById('resend-btn');
-  const requestBtn = document.getElementById('request-otp-btn');
-  
-  if (countdownTimer) clearInterval(countdownTimer);
-  
-  countdownEl.textContent = seconds;
-  resendBtn.style.display = 'none';
-  requestBtn.style.display = 'none';
-  
-  countdownTimer = setInterval(() => {
-    seconds--;
-    countdownEl.textContent = seconds;
-    
-    if (seconds <= 0) {
-      clearInterval(countdownTimer);
-      resendBtn.style.display = 'inline';
-      requestBtn.style.display = 'block';
-      requestBtn.textContent = 'Resend OTP';
-    }
-  }, 1000);
-}
-
-// Check if already logged in
 (async function() {
   try {
     const res = await fetch('/api/check-auth');
@@ -670,6 +285,8 @@ function startCountdown() {
     }
   } catch(e) {}
 })();
+
+loadLocations();
 </script>
 </body>
 </html>
